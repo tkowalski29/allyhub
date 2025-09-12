@@ -84,3 +84,6 @@ fastlane/test_output
 
 # Code Injection
 iOSInjectionProject/
+
+.spec/*
+!.spec/.gitkeep
