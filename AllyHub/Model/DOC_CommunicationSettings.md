@@ -9,7 +9,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Pole**: `tasksFetchURL`
 **Opis**: URL do pobierania listy zadań
 
-**Method**: GET
+**Method**: POST
 **Response Format**: JSON
 ```json
 {
@@ -67,7 +67,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Pole**: `chatHistoryURL`
 **Opis**: URL do pobierania historii konwersacji
 
-**Method**: GET
+**Method**: POST
 **Query Parameters**: 
 - `limit` (optional): ilość wiadomości do pobrania (default: 50)
 - `offset` (optional): offset dla paginacji (default: 0)
@@ -128,7 +128,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Pole**: `notificationsFetchURL`
 **Opis**: URL do pobierania powiadomień
 
-**Method**: GET
+**Method**: POST
 **Query Parameters**:
 - `userId` (required): identyfikator użytkownika
 - `unreadOnly` (optional): czy pobierać tylko nieprzeczytane (default: false)
@@ -165,7 +165,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ```json
 {
   "id": "string",
-  "action": "read | unread",
+  "action": "read | unread | remove",
   "timestamp": "ISO8601 timestamp"
 }
 ```

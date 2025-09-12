@@ -9,10 +9,9 @@ final class CommunicationSettings: ObservableObject {
     @Published var chatEnableStream: Bool = false
     @Published var chatMessageURL: String = ""
     @Published var chatCollectionURL: String = ""
-    @Published var notificationCollectionURL: String = ""
-    @Published var notificationActionURL: String = ""
     @Published var notificationsFetchURL: String = ""
     @Published var notificationStatusURL: String = ""
+    @Published var notificationsRefreshInterval: Int = 10 // minutes
     
     init() {
         loadSettings()
@@ -26,10 +25,9 @@ final class CommunicationSettings: ObservableObject {
         chatEnableStream = UserDefaults.standard.bool(forKey: "AllyHub.ChatEnableStream")
         chatMessageURL = UserDefaults.standard.string(forKey: "AllyHub.ChatMessageURL") ?? ""
         chatCollectionURL = UserDefaults.standard.string(forKey: "AllyHub.ChatCollectionURL") ?? ""
-        notificationCollectionURL = UserDefaults.standard.string(forKey: "AllyHub.NotificationCollectionURL") ?? ""
-        notificationActionURL = UserDefaults.standard.string(forKey: "AllyHub.NotificationActionURL") ?? ""
         notificationsFetchURL = UserDefaults.standard.string(forKey: "AllyHub.NotificationsFetchURL") ?? ""
         notificationStatusURL = UserDefaults.standard.string(forKey: "AllyHub.NotificationStatusURL") ?? ""
+        notificationsRefreshInterval = UserDefaults.standard.object(forKey: "AllyHub.NotificationsRefreshInterval") as? Int ?? 10
     }
     
     func saveSettings() {
@@ -40,10 +38,9 @@ final class CommunicationSettings: ObservableObject {
         UserDefaults.standard.set(chatEnableStream, forKey: "AllyHub.ChatEnableStream")
         UserDefaults.standard.set(chatMessageURL, forKey: "AllyHub.ChatMessageURL")
         UserDefaults.standard.set(chatCollectionURL, forKey: "AllyHub.ChatCollectionURL")
-        UserDefaults.standard.set(notificationCollectionURL, forKey: "AllyHub.NotificationCollectionURL")
-        UserDefaults.standard.set(notificationActionURL, forKey: "AllyHub.NotificationActionURL")
         UserDefaults.standard.set(notificationsFetchURL, forKey: "AllyHub.NotificationsFetchURL")
         UserDefaults.standard.set(notificationStatusURL, forKey: "AllyHub.NotificationStatusURL")
+        UserDefaults.standard.set(notificationsRefreshInterval, forKey: "AllyHub.NotificationsRefreshInterval")
     }
     
     func updateTasksFetchURL(_ url: String) {
