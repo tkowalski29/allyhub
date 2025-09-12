@@ -32,8 +32,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 }
 ```
 
-**Przykład**: `https://api.example.com/tasks`
-
 ---
 
 ### 2. Task Update URL
@@ -58,8 +56,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
   "message": "string"
 }
 ```
-
-**Przykład**: `https://api.example.com/tasks/update`
 
 ---
 
@@ -91,8 +87,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 }
 ```
 
-**Przykład**: `https://api.example.com/chat/history?userId=user123&limit=50`
-
 ---
 
 ### 4. Chat Stream URL
@@ -119,8 +113,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
   "timestamp": "ISO8601 timestamp"
 }
 ```
-
-**Przykład**: `wss://api.example.com/chat/stream` lub `https://api.example.com/chat/send`
 
 ---
 
@@ -152,8 +144,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 }
 ```
 
-**Przykład**: `https://api.example.com/notifications?userId=user123`
-
 ---
 
 ### 6. Notification Status URL
@@ -175,44 +165,5 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 {
   "success": boolean,
   "message": "string"
-}
-```
-
-**Przykład**: `https://api.example.com/notifications/status`
-
-## Bezpieczeństwo
-
-### Autoryzacja
-Wszystkie zapytania powinny zawierać odpowiednie nagłówki autoryzacji:
-- `Authorization: Bearer <token>`
-- `X-API-Key: <api-key>`
-
-### CORS
-API powinno obsługiwać CORS dla domeny aplikacji AllyHub.
-
-### Rate Limiting
-Zaleca się implementację rate limitingu:
-- Chat stream: 100 wiadomości/minutę
-- Tasks API: 60 zapytań/minutę
-- Notifications: 30 zapytań/minutę
-
-## Obsługa błędów
-Wszystkie endpointy powinny zwracać odpowiednie kody HTTP:
-- 200: Sukces
-- 400: Błędne dane wejściowe
-- 401: Brak autoryzacji
-- 403: Brak uprawnień
-- 404: Zasób nie znaleziony
-- 429: Za dużo zapytań
-- 500: Błąd serwera
-
-Format błędu:
-```json
-{
-  "error": {
-    "code": "string",
-    "message": "string",
-    "details": "string" // optional
-  }
 }
 ```
