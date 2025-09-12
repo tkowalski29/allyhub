@@ -13,18 +13,22 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Response Format**: JSON
 ```json
 {
-  "tasks": [
+  "collection": [
     {
       "id": "string",
+      "url": "string",
       "title": "string",
       "description": "string",
-      "isCompleted": boolean,
+      "is_completed": boolean,
       "priority": "high|medium|low",
-      "createdAt": "ISO8601 timestamp",
-      "updatedAt": "ISO8601 timestamp"
+      "status": "todo|inprogress",
+      "tags": []"string",
+      "due_date": "ISO8601 timestamp",
+      "created_at": "ISO8601 timestamp",
+      "updated_at": "ISO8601 timestamp"
     }
   ],
-  "currentTaskIndex": number
+  "count": number
 }
 ```
 
@@ -138,18 +142,18 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Response Format**: JSON
 ```json
 {
-  "notifications": [
+  "collection": [
     {
       "id": "string",
+      "url": "string",
       "title": "string",
       "message": "string",
       "type": "info|warning|error|success",
-      "isRead": boolean,
-      "createdAt": "ISO8601 timestamp",
-      "actionUrl": "string" // optional
+      "is_read": boolean,
+      "created_at": "ISO8601 timestamp"
     }
   ],
-  "unreadCount": number
+  "count_unread": number
 }
 ```
 
