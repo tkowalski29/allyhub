@@ -1,0 +1,8 @@
+- [x] zmiana nazwy
+- [ ] chat
+- [ ] taski 
+- [ ] notyfikacje
+- [ ] skroty klawiszowe
+- [ ] wyswietlanie nowej notyfikacji 
+- [ ] rozmowa w malym okienku
+- [ ] time tracker
