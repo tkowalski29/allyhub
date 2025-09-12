@@ -59,6 +59,9 @@ final class FloatingPanel: NSPanel {
         // Configure animation
         animationBehavior = .default
         
+        // Enable text field focus in non-activating panel
+        acceptsMouseMovedEvents = true
+        
         // Handle window close - use NSWindowDelegate instead of custom protocol
         delegate = self
     }
@@ -208,6 +211,11 @@ final class FloatingPanel: NSPanel {
     override func setFrameOrigin(_ point: NSPoint) {
         super.setFrameOrigin(point)
         // No need to notify for simple move events
+    }
+    
+    // MARK: - Key Window Override
+    override var canBecomeKey: Bool {
+        return true  // Allow TextField focus in non-activating panel
     }
     
     // MARK: - Event Handling

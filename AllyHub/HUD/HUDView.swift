@@ -16,7 +16,9 @@ struct HUDView: View {
     @State private var selectedTab: ExpandedTab = .tasks
     @State private var appearanceAccordionExpanded = true
     @State private var communicationAccordionExpanded = false
-    @State private var chatAccordionExpanded = true
+    @State private var chatAccordionExpanded = false
+    @State private var notificationsAccordionExpanded = false
+    @State private var chatTabChatAccordionExpanded = true
     @State private var conversationsAccordionExpanded = false
     @State private var chatInputText = ""
     @State private var chatMessages: [ChatMessage] = [
@@ -311,20 +313,19 @@ struct HUDView: View {
     }
     
     private var tabContentView: some View {
-        TabView(selection: $selectedTab) {
-            chatTabView
-                .tag(ExpandedTab.chat)
-            
-            tasksTabView
-                .tag(ExpandedTab.tasks)
-            
-            notificationsTabView
-                .tag(ExpandedTab.notifications)
-            
-            settingsTabView
-                .tag(ExpandedTab.settings)
+        // Temporary replacement for TabView to test if TabView is blocking interactions
+        Group {
+            switch selectedTab {
+            case .chat:
+                chatTabView
+            case .tasks:
+                tasksTabView
+            case .notifications:
+                notificationsTabView
+            case .settings:
+                settingsTabView
+            }
         }
-        .tabViewStyle(.automatic)
     }
     
     private var chatTabView: some View {
@@ -824,10 +825,159 @@ struct HUDView: View {
     private var settingsTabView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                chatAccordion
+                notificationsAccordion
                 appearanceAccordion
                 communicationAccordion
             }
             .padding()
+        }
+    }
+    
+    private var chatAccordion: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    chatAccordionExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "message")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+                    
+                    Text("Chat")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    
+                    Spacer()
+                    
+                    Image(systemName: chatAccordionExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            
+            if chatAccordionExpanded {
+                chatSettingsView
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .transition(.slide.combined(with: .opacity))
+            }
+        }
+    }
+    
+    private var chatSettingsView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Enable Stream toggle
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Enable Stream")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                    
+                    Text("Enable real-time chat streaming")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                
+                Spacer()
+                
+                Toggle("", isOn: $communicationSettings.chatEnableStream)
+                    .toggleStyle(SwitchToggleStyle(tint: .blue))
+                    .scaleEffect(0.8)
+                    .onChange(of: communicationSettings.chatEnableStream) { _ in
+                        communicationSettings.saveSettings()
+                    }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            
+            // URL Message field
+            chatUrlField(
+                title: "Message URL",
+                placeholder: "Enter URL for chat messages",
+                value: $communicationSettings.chatMessageURL
+            )
+            
+            // URL Collection field
+            chatUrlField(
+                title: "Collection URL", 
+                placeholder: "Enter URL for chat collections",
+                value: $communicationSettings.chatCollectionURL
+            )
+        }
+    }
+    
+    private var notificationsAccordion: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    notificationsAccordionExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "bell")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+                    
+                    Text("Notifications")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    
+                    Spacer()
+                    
+                    Image(systemName: notificationsAccordionExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            
+            if notificationsAccordionExpanded {
+                notificationsSettingsView
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .transition(.slide.combined(with: .opacity))
+            }
+        }
+    }
+    
+    private var notificationsSettingsView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Notification Collection URL
+            chatUrlField(
+                title: "Collection URL",
+                placeholder: "Enter URL for notifications collection",
+                value: $communicationSettings.notificationCollectionURL
+            )
+            
+            // Notification Action URL
+            chatUrlField(
+                title: "Action URL",
+                placeholder: "Enter URL for notification actions",
+                value: $communicationSettings.notificationActionURL
+            )
         }
     }
     
@@ -1057,6 +1207,32 @@ struct HUDView: View {
         }
     }
     
+    private func chatUrlField(title: String, placeholder: String, value: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(.white)
+            
+            TextField(placeholder, text: value)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .focusable(true)
+                .onSubmit {
+                    communicationSettings.saveSettings()
+                }
+        }
+    }
+    
     private func urlConfigurationField(title: String, placeholder: String, value: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
@@ -1069,6 +1245,7 @@ struct HUDView: View {
                 .font(.system(size: 12, design: .monospaced))
                 .background(Color.white.opacity(0.1))
                 .cornerRadius(6)
+                .focusable(true)
                 .onSubmit {
                     communicationSettings.saveSettings()
                 }

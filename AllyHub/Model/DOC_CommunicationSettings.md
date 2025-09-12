@@ -40,14 +40,14 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Pole**: `taskUpdateURL`
 **Opis**: URL do wysyłania aktualizacji statusu zadania
 
-**Method**: POST/PATCH
+**Method**: POST
 **Request Format**: JSON
 ```json
 {
-  "taskId": "string",
-  "action": "completed|started|paused|reset",
-  "timestamp": "ISO8601 timestamp",
-  "userId": "string"
+  "id": "string",
+  "action": "close | start | stop",
+  "date": "ISO8601 timestamp",
+  "timestamp": "ISO8601 timestamp"
 }
 ```
 
@@ -55,12 +55,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ```json
 {
   "success": boolean,
-  "message": "string",
-  "updatedTask": {
-    "id": "string",
-    "isCompleted": boolean,
-    "updatedAt": "ISO8601 timestamp"
-  }
+  "message": "string"
 }
 ```
 
@@ -169,9 +164,8 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Request Format**: JSON
 ```json
 {
-  "notificationId": "string",
-  "action": "read|unread|delete|archive",
-  "userId": "string",
+  "id": "string",
+  "action": "read | unread",
   "timestamp": "ISO8601 timestamp"
 }
 ```
@@ -180,12 +174,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ```json
 {
   "success": boolean,
-  "message": "string",
-  "notification": {
-    "id": "string",
-    "isRead": boolean,
-    "updatedAt": "ISO8601 timestamp"
-  }
+  "message": "string"
 }
 ```
 
