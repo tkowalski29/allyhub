@@ -3,6 +3,8 @@
 - [ ] rozmowa w malym okienku
 - [ ] taski 
 - [ ] time tracker
+- [ ] dodawanie taska (api)
+- [ ] dyktowanie taska (api + wisper)
 - [x] notyfikacje
 - [x] wyswietlanie nowej notyfikacji 
 - [ ] skroty klawiszowe

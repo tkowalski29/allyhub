@@ -20,6 +20,8 @@
 		501234567890ABCDEF000011 /* TimerModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 401234567890ABCDEF000011 /* TimerModelTests.swift */; };
 		501234567890ABCDEF000012 /* TasksModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 401234567890ABCDEF000012 /* TasksModelTests.swift */; };
 		501234567890ABCDEF000013 /* AppDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 401234567890ABCDEF000013 /* AppDelegateTests.swift */; };
+		AB8049B32E74B5C4006AAED5 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B22E74B5C4006AAED5 /* NotificationsView.swift */; };
+		AB8049B42E74B5C4006AAED5 /* NotificationsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B12E74B5C4006AAED5 /* NotificationsManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +52,8 @@
 		401234567890ABCDEF000013 /* AppDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateTests.swift; sourceTree = "<group>"; };
 		401234567890ABCDEF000014 /* GradientSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientSettings.swift; sourceTree = "<group>"; };
 		401234567890ABCDEF000015 /* CommunicationSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunicationSettings.swift; sourceTree = "<group>"; };
+		AB8049B12E74B5C4006AAED5 /* NotificationsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsManager.swift; sourceTree = "<group>"; };
+		AB8049B22E74B5C4006AAED5 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +134,8 @@
 		101234567890ABCDEF000070 /* HUD */ = {
 			isa = PBXGroup;
 			children = (
+				AB8049B12E74B5C4006AAED5 /* NotificationsManager.swift */,
+				AB8049B22E74B5C4006AAED5 /* NotificationsView.swift */,
 				401234567890ABCDEF000004 /* FloatingPanel.swift */,
 				401234567890ABCDEF000005 /* HUDView.swift */,
 				401234567890ABCDEF000006 /* HUDExpandedView.swift */,
@@ -203,7 +209,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 1640;
 				TargetAttributes = {
 					201234567890ABCDEF000001 = {
 						CreatedOnToolsVersion = 16.0;
@@ -264,6 +270,8 @@
 				501234567890ABCDEF000006 /* HUDExpandedView.swift in Sources */,
 				501234567890ABCDEF000007 /* TimerModel.swift in Sources */,
 				501234567890ABCDEF000008 /* TasksModel.swift in Sources */,
+				AB8049B32E74B5C4006AAED5 /* NotificationsView.swift in Sources */,
+				AB8049B42E74B5C4006AAED5 /* NotificationsManager.swift in Sources */,
 				501234567890ABCDEF000009 /* GradientSettings.swift in Sources */,
 				501234567890ABCDEF000010 /* CommunicationSettings.swift in Sources */,
 			);
@@ -324,6 +332,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -388,6 +397,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -419,6 +429,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -445,6 +456,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -465,10 +477,10 @@
 		801234567890ABCDEF000005 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
@@ -483,10 +495,10 @@
 		801234567890ABCDEF000006 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
