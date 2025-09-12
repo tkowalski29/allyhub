@@ -32,12 +32,9 @@ struct HUDView: View {
         Conversation(title: "Daily Standup", lastMessage: "What are you working on today?")
     ]
     @State private var currentConversationId: UUID?
-    @State private var notifications: [NotificationItem] = []
-    @State private var unreadNotificationsCount: Int = 0
+    @StateObject private var notificationsManager: NotificationsManager
     @State private var isRefreshing = false
     @State private var notificationsRefreshTimer: Timer?
-    @State private var hoveredNotificationId: UUID?
-    @State private var expandedNotificationId: UUID?
     
     struct ChatMessage: Identifiable, Equatable {
         let id = UUID()
@@ -59,51 +56,25 @@ struct HUDView: View {
         }
     }
     
-    struct NotificationItem: Identifiable, Equatable {
-        let id = UUID()
-        let apiId: String? // API ID for server communication
-        let url: String? // URL link for notification
-        let title: String
-        let message: String
-        let type: NotificationType
-        var isRead: Bool
-        let timestamp = Date() // Local timestamp
-        let createdAt: Date? // API created_at timestamp
-        
-        init(title: String, message: String, type: NotificationType, isRead: Bool, apiId: String? = nil, url: String? = nil, createdAt: Date? = nil) {
-            self.title = title
-            self.message = message
-            self.type = type
-            self.isRead = isRead
-            self.apiId = apiId
-            self.url = url
-            self.createdAt = createdAt
-        }
-    }
+    // MARK: - Initializer
     
-    enum NotificationType: String, CaseIterable {
-        case info = "info"
-        case success = "success"
-        case warning = "warning"
-        case error = "error"
-        
-        var color: Color {
-            switch self {
-            case .info: return .blue
-            case .success: return .green
-            case .warning: return .orange
-            case .error: return .red
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .info: return "info.circle"
-            case .success: return "checkmark.circle"
-            case .warning: return "exclamationmark.triangle"
-            case .error: return "xmark.circle"
-            }
-        }
+    init(timerModel: TimerModel, 
+         tasksModel: TasksModel, 
+         gradientSettings: GradientSettings, 
+         communicationSettings: CommunicationSettings,
+         isExpanded: Bool,
+         isOnLeftSide: Bool,
+         onExpand: @escaping () -> Void,
+         onClose: @escaping () -> Void) {
+        self.timerModel = timerModel
+        self.tasksModel = tasksModel
+        self.gradientSettings = gradientSettings
+        self.communicationSettings = communicationSettings
+        self.isExpanded = isExpanded
+        self.isOnLeftSide = isOnLeftSide
+        self.onExpand = onExpand
+        self.onClose = onClose
+        self._notificationsManager = StateObject(wrappedValue: NotificationsManager(communicationSettings: communicationSettings))
     }
     
     enum ExpandedTab: String, CaseIterable {
@@ -123,25 +94,6 @@ struct HUDView: View {
     }
     
     // MARK: - Initialization
-    init(
-        timerModel: TimerModel,
-        tasksModel: TasksModel,
-        gradientSettings: GradientSettings,
-        communicationSettings: CommunicationSettings,
-        isExpanded: Bool = false,
-        isOnLeftSide: Bool = false,
-        onExpand: @escaping () -> Void,
-        onClose: @escaping () -> Void
-    ) {
-        self.timerModel = timerModel
-        self.tasksModel = tasksModel
-        self.gradientSettings = gradientSettings
-        self.communicationSettings = communicationSettings
-        self.isExpanded = isExpanded
-        self.isOnLeftSide = isOnLeftSide
-        self.onExpand = onExpand
-        self.onClose = onClose
-    }
     
     // MARK: - Body
     var body: some View {
@@ -164,6 +116,8 @@ struct HUDView: View {
         }
         .onAppear {
             startNotificationRefreshTimer()
+            // Fetch notifications immediately when view appears
+            refreshNotifications()
         }
         .onDisappear {
             stopNotificationRefreshTimer()
@@ -223,8 +177,8 @@ struct HUDView: View {
                     Spacer(minLength: 0)
                     
                     // Notification badge for unread notifications
-                    if unreadNotificationsCount > 0 {
-                        Text("\(unreadNotificationsCount)")
+                    if notificationsManager.unreadNotificationsCount > 0 {
+                        Text("\(notificationsManager.unreadNotificationsCount)")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.black)
                             .frame(width: 18, height: 18)
@@ -720,284 +674,51 @@ struct HUDView: View {
     }
     
     private var notificationsTabView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header with unread count
-                notificationsHeader
-                
-                // Notifications list
-                notificationsList
-                
-                if notifications.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: communicationSettings.notificationsFetchURL.isEmpty ? "bell.slash" : "bell")
-                            .font(.system(size: 32))
-                            .foregroundStyle(.white.opacity(0.4))
-                        
-                        VStack(spacing: 4) {
-                            Text(communicationSettings.notificationsFetchURL.isEmpty ? "No notifications configured" : "No notifications")
-                                .font(.body)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.white.opacity(0.8))
-                            
-                            Text(communicationSettings.notificationsFetchURL.isEmpty ? "Configure notifications URL in Settings" : "Pull to refresh or wait for updates")
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.6))
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        if !communicationSettings.notificationsFetchURL.isEmpty {
-                            Button("Refresh now") {
-                                refreshNotifications()
-                            }
-                            .buttonStyle(.plain)
-                            .font(.caption)
-                            .foregroundStyle(.blue.opacity(0.8))
-                            .disabled(isRefreshing)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 40)
-                }
-            }
-            .padding()
-        }
-    }
-    
-    private var notificationsHeader: some View {
-        HStack {
-            Text("Notifications")
-                .font(.headline)
-                .foregroundStyle(.white)
-            
-            Spacer()
-            
-            if unreadNotificationsCount > 0 {
-                Text("\(unreadNotificationsCount)")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 24, height: 24)
-                    .background(Color.orange)
-                    .clipShape(Circle())
-            }
-            
-            // Refresh button
-            Button(action: {
-                refreshNotifications()
-            }) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.8))
-                    .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                    .animation(isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
-            }
-            .buttonStyle(.plain)
-            .disabled(isRefreshing)
-            .opacity(isRefreshing ? 0.5 : 1.0)
-        }
-    }
-    
-    private var notificationsList: some View {
-        LazyVStack(spacing: 8) {
-            ForEach(Array(notifications.enumerated()), id: \.offset) { index, notification in
-                notificationRow(notification: notification, index: index)
-            }
-        }
-    }
-    
-    private func notificationRow(notification: NotificationItem, index: Int) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Type icon with white background
-            Image(systemName: notification.type.icon)
-                .font(.system(size: 12))
-                .foregroundStyle(notification.type.color)
-                .frame(width: 20, height: 20)
-                .background(Color.white)
-                .clipShape(Circle())
-            
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                // Title row - always show title, hover actions on the right
-                HStack {
-                    Text(notification.title)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
+        VStack(spacing: 0) {
+            if notificationsManager.notifications.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: communicationSettings.notificationsFetchURL.isEmpty ? "bell.slash" : "bell")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.white.opacity(0.4))
                     
-                    Spacer()
-                    
-                    if hoveredNotificationId == notification.id {
-                        // Hover actions on the right
-                        notificationHoverActions(notification: notification, index: index)
-                    } else {
-                        // Normal state - show read/unread icon
-                        Image(systemName: notification.isRead ? "envelope" : "envelope.open")
-                            .font(.system(size: 16))
-                            .foregroundStyle(notification.isRead ? .white.opacity(0.3) : .white.opacity(0.8))
-                    }
-                }
-                
-                // Expanded content - shown when notification is expanded
-                if expandedNotificationId == notification.id {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Divider()
-                            .background(.white.opacity(0.3))
-                        
-                        // Full message
-                        Text(notification.message)
-                            .font(.system(size: 12))
+                    VStack(spacing: 4) {
+                        Text(communicationSettings.notificationsFetchURL.isEmpty ? "No notifications configured" : "No notifications")
+                            .font(.body)
+                            .fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.8))
-                            .multilineTextAlignment(.leading)
                         
-                        // Created at date - show API date or fallback to local timestamp
-                        HStack {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.white.opacity(0.6))
-                            
-                            let displayDate = notification.createdAt ?? notification.timestamp
-                            Text("\(displayDate.formatted(date: .abbreviated, time: .shortened))")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.white.opacity(0.6))
+                        Text(communicationSettings.notificationsFetchURL.isEmpty ? "Configure notifications URL in Settings" : "Pull to refresh or wait for updates")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    if !communicationSettings.notificationsFetchURL.isEmpty {
+                        Button("Refresh now") {
+                            refreshNotifications()
                         }
+                        .buttonStyle(.plain)
+                        .font(.caption)
+                        .foregroundStyle(.blue.opacity(0.8))
+                        .disabled(isRefreshing)
                     }
                 }
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(notificationBackground(for: notification))
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(notification.isRead ? Color.clear : Color.blue.opacity(0.3), lineWidth: 1)
-        )
-        .onHover { isHovering in
-            hoveredNotificationId = isHovering ? notification.id : nil
-        }
-    }
-    
-    private func notificationHoverActions(notification: NotificationItem, index: Int) -> some View {
-        HStack(spacing: 6) {
-            // Read/Unread toggle button
-            Button(action: {
-                toggleNotificationReadStatus(notification: notification, index: index)
-            }) {
-                Image(systemName: notification.isRead ? "envelope.open.fill" : "envelope.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(notification.isRead ? .blue : .gray)
-                    .frame(width: 20, height: 20)
-                    .background(Color.white)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-            
-            // Delete button - smaller white circular background
-            Button(action: {
-                removeNotification(notification: notification, index: index)
-            }) {
-                Image(systemName: "trash")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.red)
-                    .frame(width: 20, height: 20)
-                    .background(Color.white)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-            
-            // URL link button - only if URL exists
-            if let url = notification.url, !url.isEmpty {
-                Button(action: {
-                    openURL(url)
-                }) {
-                    Image(systemName: "link")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.blue)
-                        .frame(width: 20, height: 20)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-            }
-            
-            // Info/expand button - smaller white circular background
-            Button(action: {
-                toggleNotificationExpansion(notification.id)
-            }) {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.gray)
-                    .frame(width: 20, height: 20)
-                    .background(Color.white)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-        }
-    }
-    
-    private func notificationBackground(for notification: NotificationItem) -> Color {
-        notification.isRead ? Color.white.opacity(0.02) : Color.blue.opacity(0.1)
-    }
-    
-    private func removeNotification(notification: NotificationItem, index: Int) {
-        // Update unread count if removing unread notification
-        if !notification.isRead {
-            unreadNotificationsCount = max(0, unreadNotificationsCount - 1)
-        }
-        
-        // Remove from local list with animation
-        withAnimation(.easeOut(duration: 0.2)) {
-            notifications.remove(at: index)
-        }
-        
-        // Send remove request to API if we have an API ID
-        if let apiId = notification.apiId {
-            updateNotificationStatus(notificationId: apiId, isRead: nil, action: "remove")
-        }
-    }
-    
-    private func openURL(_ urlString: String) {
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL: \(urlString)")
-            return
-        }
-        
-        NSWorkspace.shared.open(url)
-        print("Opening URL: \(urlString)")
-    }
-    
-    private func toggleNotificationExpansion(_ notificationId: UUID) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            if expandedNotificationId == notificationId {
-                expandedNotificationId = nil
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 40)
             } else {
-                expandedNotificationId = notificationId
+                NotificationsView(
+                    notifications: $notificationsManager.notifications,
+                    unreadNotificationsCount: $notificationsManager.unreadNotificationsCount,
+                    expandedNotificationId: $notificationsManager.expandedNotificationId,
+                    communicationSettings: communicationSettings,
+                    onRefresh: refreshNotifications
+                )
             }
         }
     }
     
-    private func toggleNotificationReadStatus(notification: NotificationItem, index: Int) {
-        // Toggle local read status
-        let wasRead = notifications[index].isRead
-        notifications[index].isRead.toggle()
-        
-        // Update unread count
-        if wasRead {
-            // Was read, now unread - increase count
-            unreadNotificationsCount += 1
-        } else {
-            // Was unread, now read - decrease count
-            unreadNotificationsCount = max(0, unreadNotificationsCount - 1)
-        }
-        
-        // Send update to API if we have an API ID
-        if let apiId = notification.apiId {
-            let newStatus = notifications[index].isRead
-            print("Toggling notification \(apiId): \(wasRead ? "read" : "unread") -> \(newStatus ? "read" : "unread")")
-            updateNotificationStatus(notificationId: apiId, isRead: newStatus)
-        }
-    }
+    
     
     
     // MARK: - Settings Tab View (broken into smaller components)
@@ -1590,169 +1311,15 @@ struct HUDView: View {
     
     // MARK: - Notifications Refresh Logic
     private func refreshNotifications() {
-        guard !communicationSettings.notificationsFetchURL.isEmpty else {
-            print("Notifications fetch URL not configured")
-            isRefreshing = false
-            return
-        }
-        
         isRefreshing = true
+        notificationsManager.fetchNotifications()
         
-        guard let url = URL(string: communicationSettings.notificationsFetchURL) else {
-            print("Invalid notifications fetch URL")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isRefreshing = false
-            return
         }
-        
-        // Create POST request
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        // TODO: Add Authorization header if needed
-        // request.setValue("Bearer <token>", forHTTPHeaderField: "Authorization")
-        
-        // Perform API call
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                isRefreshing = false
-                
-                if let error = error {
-                    print("Notifications fetch error: \(error.localizedDescription)")
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    print("Invalid HTTP response")
-                    return
-                }
-                
-                guard httpResponse.statusCode == 200 else {
-                    print("HTTP error: \(httpResponse.statusCode)")
-                    return
-                }
-                
-                guard let data = data else {
-                    print("No data received")
-                    return
-                }
-                
-                do {
-                    // Try to parse as array of NotificationsResponse objects
-                    if let apiResponseArray = try? JSONDecoder().decode([NotificationsResponse].self, from: data) {
-                        // Take the first response object
-                        if let firstResponse = apiResponseArray.first {
-                            processNotificationsResponse(firstResponse)
-                        }
-                    } else if let apiNotifications = try? JSONDecoder().decode([APINotification].self, from: data) {
-                        // Fallback: direct array of notifications
-                        processNotificationsArray(apiNotifications)
-                    } else {
-                        // Fallback: single object with "collection" field
-                        let apiResponse = try JSONDecoder().decode(NotificationsResponse.self, from: data)
-                        processNotificationsResponse(apiResponse)
-                    }
-                } catch {
-                    print("JSON parsing error: \(error)")
-                    // Fallback: show mock notification to indicate refresh attempt
-                    let fallbackNotification = NotificationItem(
-                        title: "Refresh Attempted",
-                        message: "Could not parse response from \(url.host ?? "server") at \(Date().formatted(date: .omitted, time: .shortened))",
-                        type: .warning,
-                        isRead: false
-                    )
-                    notifications.insert(fallbackNotification, at: 0)
-                }
-            }
-        }.resume()
     }
     
-    private func processNotificationsArray(_ apiNotifications: [APINotification]) {
-        var newNotifications: [NotificationItem] = []
-        
-        for apiNotification in apiNotifications {
-            let type: NotificationType = {
-                switch apiNotification.type.lowercased() {
-                case "info": return .info
-                case "warning": return .warning
-                case "error": return .error  
-                case "success": return .success
-                default: return .info
-                }
-            }()
-            
-            // Parse created_at date
-            let createdAtDate: Date?
-            if !apiNotification.created_at.isEmpty {
-                let formatter = ISO8601DateFormatter()
-                createdAtDate = formatter.date(from: apiNotification.created_at)
-            } else {
-                createdAtDate = nil
-            }
-            
-            let notification = NotificationItem(
-                title: apiNotification.title,
-                message: apiNotification.message,
-                type: type,
-                isRead: apiNotification.is_read,
-                apiId: apiNotification.id,
-                url: apiNotification.url,
-                createdAt: createdAtDate
-            )
-            
-            newNotifications.append(notification)
-        }
-        
-        // Replace current notifications with fetched ones
-        notifications = newNotifications
-        // Update unread count from local data for direct array (fallback)
-        unreadNotificationsCount = newNotifications.filter { !$0.isRead }.count
-        
-        print("Successfully fetched \(newNotifications.count) notifications (direct array)")
-    }
     
-    private func processNotificationsResponse(_ response: NotificationsResponse) {
-        var newNotifications: [NotificationItem] = []
-        
-        for apiNotification in response.collection {
-            let type: NotificationType = {
-                switch apiNotification.type.lowercased() {
-                case "info": return .info
-                case "warning": return .warning
-                case "error": return .error  
-                case "success": return .success
-                default: return .info
-                }
-            }()
-            
-            // Parse created_at date
-            let createdAtDate: Date?
-            if !apiNotification.created_at.isEmpty {
-                let formatter = ISO8601DateFormatter()
-                createdAtDate = formatter.date(from: apiNotification.created_at)
-            } else {
-                createdAtDate = nil
-            }
-            
-            let notification = NotificationItem(
-                title: apiNotification.title,
-                message: apiNotification.message,
-                type: type,
-                isRead: apiNotification.is_read,
-                apiId: apiNotification.id,
-                url: apiNotification.url,
-                createdAt: createdAtDate
-            )
-            
-            newNotifications.append(notification)
-        }
-        
-        // Replace current notifications with fetched ones
-        notifications = newNotifications
-        // Use unread count from API response
-        unreadNotificationsCount = response.count_unread
-        
-        print("Successfully fetched \(newNotifications.count) notifications, \(response.count_unread) unread")
-    }
     
     private func startNotificationRefreshTimer() {
         stopNotificationRefreshTimer()
@@ -1838,21 +1405,6 @@ struct HUDView: View {
     }
 }
 
-// MARK: - API Response Models
-struct NotificationsResponse: Codable {
-    let collection: [APINotification]
-    let count_unread: Int
-}
-
-struct APINotification: Codable {
-    let id: String
-    let url: String?
-    let title: String
-    let message: String
-    let type: String
-    let is_read: Bool
-    let created_at: String
-}
 
 // MARK: - Custom Button Styles
 struct RefreshIntervalButtonStyle: ButtonStyle {
