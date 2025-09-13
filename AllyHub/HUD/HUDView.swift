@@ -7,6 +7,7 @@ struct HUDView: View {
     @ObservedObject var gradientSettings: GradientSettings
     @ObservedObject var communicationSettings: CommunicationSettings
     @ObservedObject var keyboardShortcutsSettings: KeyboardShortcutsSettings
+    @ObservedObject var taskCreationSettings: TaskCreationSettings
     
     let isExpanded: Bool
     let isOnLeftSide: Bool
@@ -39,6 +40,8 @@ struct HUDView: View {
     @State private var isRefreshing = false
     @State private var isRefreshButtonAnimating = false
     @State private var notificationsRefreshTimer: Timer?
+    @State private var showingQuickAudioRecorder = false
+    @State private var showingQuickScreenRecorder = false
     
     struct ChatMessage: Identifiable, Equatable {
         let id = UUID()
@@ -67,6 +70,7 @@ struct HUDView: View {
          gradientSettings: GradientSettings, 
          communicationSettings: CommunicationSettings,
          keyboardShortcutsSettings: KeyboardShortcutsSettings,
+         taskCreationSettings: TaskCreationSettings,
          isExpanded: Bool,
          isOnLeftSide: Bool,
          onExpand: @escaping () -> Void,
@@ -76,6 +80,7 @@ struct HUDView: View {
         self.gradientSettings = gradientSettings
         self.communicationSettings = communicationSettings
         self.keyboardShortcutsSettings = keyboardShortcutsSettings
+        self.taskCreationSettings = taskCreationSettings
         self.isExpanded = isExpanded
         self.isOnLeftSide = isOnLeftSide
         self.onExpand = onExpand
@@ -128,6 +133,20 @@ struct HUDView: View {
             // Fetch actions when view appears
             actionsManager.fetchActions()
         }
+        .sheet(isPresented: $showingQuickAudioRecorder) {
+            AudioRecorderView(onTaskCreated: { task in
+                addQuickTaskToSystem(task)
+            }, communicationSettings: communicationSettings)
+        }
+        .sheet(isPresented: $showingQuickScreenRecorder) {
+            if #available(macOS 12.3, *) {
+                ScreenRecorderView(onTaskCreated: { task in
+                    addQuickTaskToSystem(task)
+                }, communicationSettings: communicationSettings)
+            } else {
+                ScreenRecorderFallbackView()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .nextTabKeyboardShortcut)) { _ in
             nextTab()
         }
@@ -168,6 +187,27 @@ struct HUDView: View {
     }
     
     // MARK: - Timer Actions
+    private func handleQuickTaskCreation() {
+        switch taskCreationSettings.floatingPanelDefaultAction {
+        case .microphone:
+            showingQuickAudioRecorder = true
+        case .screen:
+            showingQuickScreenRecorder = true
+        }
+    }
+    
+    private func addQuickTaskToSystem(_ task: TaskItem) {
+        // Add task to tasks manager
+        tasksManager.tasks.append(task)
+        
+        // Set as active task if it's the first one
+        if tasksManager.tasks.count == 1 {
+            activeTaskId = task.id
+        }
+        
+        print("✅ Quick task created: \(task.title)")
+    }
+    
     private func startTimer() {
         print("🟢 startTimer() called")
         timerModel.start()
@@ -183,7 +223,7 @@ struct HUDView: View {
     private func sendTimerAction(action: String) {
         print("📤 sendTimerAction() called with action: \(action)")
         print("📤 taskUpdateURL: \(communicationSettings.taskUpdateURL)")
-        print("📤 actionsManager available: \(actionsManager != nil)")
+        print("📤 actionsManager available: true")
         print("📤 activeTask: \(activeTask?.title ?? "nil")")
         
         // Get current date for start action, elapsed time for stop action
@@ -286,7 +326,7 @@ struct HUDView: View {
                 Spacer()
                 
                 if isRightSectionHovering && !isChatInputFocused {
-                    // Hover controls (only expand and next task)
+                    // Hover controls (expand, timer, and task creation)
                     HStack(spacing: 8) {
                         // Expand button
                         Button(action: onExpand) {
@@ -312,6 +352,19 @@ struct HUDView: View {
                                 .foregroundColor(.white)
                                 .frame(width: 28, height: 28)
                                 .background(Color.white.opacity(0.2))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // Quick task creation button (configurable action)
+                        Button(action: {
+                            handleQuickTaskCreation()
+                        }) {
+                            Image(systemName: taskCreationSettings.floatingPanelDefaultAction.iconName)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 28, height: 28)
+                                .background(taskCreationSettings.floatingPanelDefaultAction == .microphone ? Color.green.opacity(0.8) : Color.purple.opacity(0.8))
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
@@ -480,7 +533,8 @@ struct HUDView: View {
                 SettingsView(
                     communicationSettings: communicationSettings,
                     gradientSettings: gradientSettings,
-                    keyboardShortcutsSettings: keyboardShortcutsSettings
+                    keyboardShortcutsSettings: keyboardShortcutsSettings,
+                    taskCreationSettings: taskCreationSettings
                 )
             }
         }
@@ -748,7 +802,7 @@ struct HUDView: View {
     
     // MARK: - Tasks Tab View (broken into smaller components)
     private var tasksTabView: some View {
-        TasksView(tasksManager: tasksManager, tasksModel: tasksModel, timerModel: timerModel, actionsManager: actionsManager, communicationSettings: communicationSettings)
+        TasksView(tasksManager: tasksManager, tasksModel: tasksModel, timerModel: timerModel, actionsManager: actionsManager, communicationSettings: communicationSettings, taskCreationSettings: taskCreationSettings)
     }
     
     private var notificationsTabView: some View {

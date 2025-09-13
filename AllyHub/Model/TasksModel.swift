@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 final class TasksModel: ObservableObject {
@@ -170,5 +171,100 @@ extension TasksModel {
     
     var incompleteTaskTitles: [String] {
         return tasks.filter { !$0.isCompleted }.map { $0.title }
+    }
+}
+
+// MARK: - API Task Models
+
+struct TaskItem: Identifiable, Equatable {
+    var id: String { apiId ?? title }
+    var title: String
+    var description: String
+    var status: TaskStatus
+    var priority: TaskPriority
+    var isCompleted: Bool
+    var dueDate: Date?
+    var createdAt: Date?
+    var url: String?
+    var apiId: String?
+    var tags: [String]
+    var creationType: TaskCreationType
+    var audioUrl: String?
+    var transcription: String?
+    
+    init(title: String, description: String, status: TaskStatus, priority: TaskPriority, isCompleted: Bool, dueDate: Date? = nil, createdAt: Date? = nil, url: String? = nil, apiId: String? = nil, tags: [String] = [], creationType: TaskCreationType = .form, audioUrl: String? = nil, transcription: String? = nil) {
+        self.title = title
+        self.description = description
+        self.status = status
+        self.priority = priority
+        self.isCompleted = isCompleted
+        self.dueDate = dueDate
+        self.createdAt = createdAt
+        self.url = url
+        self.apiId = apiId
+        self.tags = tags
+        self.creationType = creationType
+        self.audioUrl = audioUrl
+        self.transcription = transcription
+    }
+    
+    static func == (lhs: TaskItem, rhs: TaskItem) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.title == rhs.title &&
+               lhs.description == rhs.description &&
+               lhs.isCompleted == rhs.isCompleted &&
+               lhs.status == rhs.status &&
+               lhs.priority == rhs.priority &&
+               lhs.creationType == rhs.creationType
+    }
+}
+
+enum TaskStatus: String, CaseIterable {
+    case todo = "todo"
+    case inprogress = "inprogress"
+    
+    var displayName: String {
+        switch self {
+        case .todo: return "To Do"
+        case .inprogress: return "In Progress"
+        }
+    }
+}
+
+enum TaskPriority: String, CaseIterable {
+    case high = "high"
+    case medium = "medium"
+    case low = "low"
+}
+
+enum TaskCreationType: String, CaseIterable, Identifiable {
+    case form = "form"
+    case microphone = "microphone"
+    case screen = "screen"
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .form: return "Form"
+        case .microphone: return "Voice Recording"
+        case .screen: return "Screen Recording"
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .form: return "doc.text"
+        case .microphone: return "mic"
+        case .screen: return "display"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .form: return .blue
+        case .microphone: return .green
+        case .screen: return .purple
+        }
     }
 }

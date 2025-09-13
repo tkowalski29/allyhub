@@ -27,6 +27,12 @@
 		AB8049BA2E7537C1006AAED5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B92E7537C1006AAED5 /* SettingsView.swift */; };
 		AB8049BD2E75486D006AAED5 /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049BC2E75486D006AAED5 /* TasksView.swift */; };
 		AB8049BE2E75486D006AAED5 /* TasksManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049BB2E75486D006AAED5 /* TasksManager.swift */; };
+		AB8049C02E75E8E1006AAED5 /* TaskCreationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049BF2E75E8E1006AAED5 /* TaskCreationSheet.swift */; };
+		AB8049C22E75EB7A006AAED5 /* TaskFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049C12E75EB7A006AAED5 /* TaskFormView.swift */; };
+		AB8049C42E75EBFB006AAED5 /* AudioRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049C32E75EBFB006AAED5 /* AudioRecorderView.swift */; };
+		AB8049C62E75ECD5006AAED5 /* ScreenRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049C52E75ECD5006AAED5 /* ScreenRecorderView.swift */; };
+		AB8049C92E75F053006AAED5 /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049C72E75F053006AAED5 /* TranscriptionService.swift */; };
+		AB8049CB2E75F367006AAED5 /* FileUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049CA2E75F367006AAED5 /* FileUploadService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +70,12 @@
 		AB8049B92E7537C1006AAED5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AB8049BB2E75486D006AAED5 /* TasksManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksManager.swift; sourceTree = "<group>"; };
 		AB8049BC2E75486D006AAED5 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
+		AB8049BF2E75E8E1006AAED5 /* TaskCreationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCreationSheet.swift; sourceTree = "<group>"; };
+		AB8049C12E75EB7A006AAED5 /* TaskFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskFormView.swift; sourceTree = "<group>"; };
+		AB8049C32E75EBFB006AAED5 /* AudioRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderView.swift; sourceTree = "<group>"; };
+		AB8049C52E75ECD5006AAED5 /* ScreenRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecorderView.swift; sourceTree = "<group>"; };
+		AB8049C72E75F053006AAED5 /* TranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionService.swift; sourceTree = "<group>"; };
+		AB8049CA2E75F367006AAED5 /* FileUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileUploadService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +108,7 @@
 		101234567890ABCDEF000020 /* AllyHub */ = {
 			isa = PBXGroup;
 			children = (
+				AB8049C82E75F053006AAED5 /* Services */,
 				101234567890ABCDEF000050 /* App */,
 				101234567890ABCDEF000060 /* StatusBar */,
 				101234567890ABCDEF000070 /* HUD */,
@@ -144,6 +157,10 @@
 		101234567890ABCDEF000070 /* HUD */ = {
 			isa = PBXGroup;
 			children = (
+				AB8049C52E75ECD5006AAED5 /* ScreenRecorderView.swift */,
+				AB8049C32E75EBFB006AAED5 /* AudioRecorderView.swift */,
+				AB8049C12E75EB7A006AAED5 /* TaskFormView.swift */,
+				AB8049BF2E75E8E1006AAED5 /* TaskCreationSheet.swift */,
 				AB8049BB2E75486D006AAED5 /* TasksManager.swift */,
 				AB8049BC2E75486D006AAED5 /* TasksView.swift */,
 				AB8049B92E7537C1006AAED5 /* SettingsView.swift */,
@@ -176,6 +193,15 @@
 				401234567890ABCDEF000010 /* AllyHub.entitlements */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		AB8049C82E75F053006AAED5 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AB8049CA2E75F367006AAED5 /* FileUploadService.swift */,
+				AB8049C72E75F053006AAED5 /* TranscriptionService.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -279,14 +305,19 @@
 			files = (
 				AB8049BA2E7537C1006AAED5 /* SettingsView.swift in Sources */,
 				501234567890ABCDEF000001 /* AllyHubApp.swift in Sources */,
+				AB8049C92E75F053006AAED5 /* TranscriptionService.swift in Sources */,
+				AB8049C22E75EB7A006AAED5 /* TaskFormView.swift in Sources */,
 				501234567890ABCDEF000002 /* AppDelegate.swift in Sources */,
 				501234567890ABCDEF000003 /* StatusBarController.swift in Sources */,
 				AB8049B72E75301E006AAED5 /* ActionsView.swift in Sources */,
 				AB8049B82E75301E006AAED5 /* ActionsManager.swift in Sources */,
 				501234567890ABCDEF000004 /* FloatingPanel.swift in Sources */,
 				501234567890ABCDEF000005 /* HUDView.swift in Sources */,
+				AB8049CB2E75F367006AAED5 /* FileUploadService.swift in Sources */,
+				AB8049C42E75EBFB006AAED5 /* AudioRecorderView.swift in Sources */,
 				501234567890ABCDEF000006 /* HUDExpandedView.swift in Sources */,
 				AB8049BD2E75486D006AAED5 /* TasksView.swift in Sources */,
+				AB8049C62E75ECD5006AAED5 /* ScreenRecorderView.swift in Sources */,
 				AB8049BE2E75486D006AAED5 /* TasksManager.swift in Sources */,
 				501234567890ABCDEF000007 /* TimerModel.swift in Sources */,
 				501234567890ABCDEF000008 /* TasksModel.swift in Sources */,
@@ -294,6 +325,7 @@
 				AB8049B42E74B5C4006AAED5 /* NotificationsManager.swift in Sources */,
 				501234567890ABCDEF000009 /* GradientSettings.swift in Sources */,
 				501234567890ABCDEF000010 /* CommunicationSettings.swift in Sources */,
+				AB8049C02E75E8E1006AAED5 /* TaskCreationSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

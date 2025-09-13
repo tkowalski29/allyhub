@@ -156,7 +156,79 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 
 ---
 
-### 7. Actions Fetch URL
+### 7. Task Create URL
+**Pole**: `taskCreateURL`  
+**Opis**: URL do tworzenia nowych zadań z różnymi metodami input (formularz, audio, screen recording)
+**Method**: POST
+**Content-Type**: `multipart/form-data` (dla zadań z plikami) lub `application/json` (dla zadań tekstowych)
+
+**Request Format**: JSON/FormData
+```json
+{
+  "title": "string",
+  "description": "string", 
+  "priority": "high|medium|low",
+  "due_date": "ISO8601 timestamp", // opcjonalne
+  "creation_type": "form|microphone|screen",
+  "audio_url": "string", // opcjonalne - ścieżka do pliku audio
+  "transcription": "string", // opcjonalne - transkrypcja audio/screen
+  "tags": ["string"], // opcjonalne
+  "user_id": "string" // opcjonalne
+}
+```
+
+**Szczegóły dla różnych typów tworzenia:**
+
+#### 7.1 Task Creation Type: "form"
+- Standardowe tworzenie zadania przez formularz
+- Wszystkie pola wprowadzone manualnie
+- `audio_url` i `transcription` = null
+
+#### 7.2 Task Creation Type: "microphone"  
+- Zadanie utworzone przez nagranie audio
+- `audio_url` zawiera ścieżkę do pliku nagrania (.m4a)
+- `transcription` zawiera tekst z lokalnej transkrypcji WhisperKit
+- `title` i `description` mogą być wypełnione przez użytkownika po nagraniu
+
+#### 7.3 Task Creation Type: "screen"
+- Zadanie utworzone przez nagranie ekranu
+- `audio_url` zawiera ścieżkę do pliku screen recording (.mov)
+- `transcription` zawiera informacje o nagranej aplikacji (np. "Screen recording: Google Chrome")
+- `title` i `description` wypełniane przez użytkownika po nagraniu
+
+**Response Format**: JSON
+```json
+{
+  "success": boolean,
+  "task_id": "string",
+  "message": "string",
+  "created_at": "ISO8601 timestamp"
+}
+```
+
+**File Upload (dla audio/screen recordings):**
+Pliki mogą być załączane jako `multipart/form-data`:
+```
+Content-Type: multipart/form-data
+
+--boundary
+Content-Disposition: form-data; name="task_data"
+Content-Type: application/json
+
+{JSON data jak wyżej}
+
+--boundary  
+Content-Disposition: form-data; name="recording_file"; filename="recording_123456.m4a"
+Content-Type: audio/mp4
+
+{binary audio/video data}
+
+--boundary--
+```
+
+---
+
+### 8. Actions Fetch URL
 **Pole**: `actionsFetchURL`
 **Opis**: URL do pobierania akcji do wykonania
 **Method**: POST

@@ -6,33 +6,90 @@ struct TasksView: View {
     @ObservedObject var timerModel: TimerModel
     @ObservedObject var actionsManager: ActionsManager
     @ObservedObject var communicationSettings: CommunicationSettings
+    @ObservedObject var taskCreationSettings: TaskCreationSettings
     @AppStorage("activeTaskId") private var activeTaskId: String?
     @State private var expandedStatusSections: Set<String> = ["todo", "inprogress"] // Default expanded
+    @State private var showingTaskCreationSheet = false
+    @State private var showingTaskFormView = false
+    @State private var showingAudioRecorderView = false
+    @State private var showingScreenRecorderView = false
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                if tasksManager.tasks.isEmpty {
-                    emptyStateView
-                } else {
-                    // Active task section at top (if any)
-                    if let activeTask = tasksManager.tasks.first(where: { $0.id == activeTaskId }) {
-                        activeTaskSection(activeTask)
-                    } else {
-                        // Clear activeTaskId if the task no longer exists
-                        if activeTaskId != nil {
-                            let _ = { activeTaskId = nil }()
-                        }
-                    }
-                    
-                    // Task sections grouped by status
-                    ForEach(groupedTaskStatuses, id: \.self) { status in
-                        taskStatusSection(status: status)
-                    }
+        VStack(spacing: 0) {
+            // Header with + button
+            HStack {
+                Text("Tasks")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                
+                Spacer()
+                
+                // Add task button
+                Button(action: {
+                    showingTaskCreationSheet = true
+                }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.blue)
+                        .clipShape(Circle())
                 }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
+            .padding(.bottom, 12)
+            
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    if tasksManager.tasks.isEmpty {
+                        emptyStateView
+                    } else {
+                        // Active task section at top (if any)
+                        if let activeTask = tasksManager.tasks.first(where: { $0.id == activeTaskId }) {
+                            activeTaskSection(activeTask)
+                        } else {
+                            // Clear activeTaskId if the task no longer exists
+                            if activeTaskId != nil {
+                                let _ = { activeTaskId = nil }()
+                            }
+                        }
+                        
+                        // Task sections grouped by status
+                        ForEach(groupedTaskStatuses, id: \.self) { status in
+                            taskStatusSection(status: status)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+        .sheet(isPresented: $showingTaskCreationSheet) {
+            TaskCreationSheet { creationType in
+                handleTaskCreation(type: creationType)
+            }
+            .presentationDetents([.height(400)])
+        }
+        .sheet(isPresented: $showingTaskFormView) {
+            TaskFormView(onTaskCreated: { task in
+                addTaskToSystem(task)
+            }, communicationSettings: communicationSettings)
+        }
+        .sheet(isPresented: $showingAudioRecorderView) {
+            AudioRecorderView(onTaskCreated: { task in
+                addTaskToSystem(task)
+            }, communicationSettings: communicationSettings)
+        }
+        .sheet(isPresented: $showingScreenRecorderView) {
+            if #available(macOS 12.3, *) {
+                ScreenRecorderView(onTaskCreated: { task in
+                    addTaskToSystem(task)
+                }, communicationSettings: communicationSettings)
+            } else {
+                ScreenRecorderFallbackView()
+            }
         }
     }
     
@@ -230,16 +287,13 @@ struct TasksView: View {
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
-        let dateValue: String
         let timestampValue: String
         
         if action == "start" {
-            // For start: use current date and timestamp
-            dateValue = dateFormatter.string(from: currentDate)
+            // For start: use current timestamp
             timestampValue = dateFormatter.string(from: currentDate)
         } else {
-            // For stop: use current date but timestamp should reflect elapsed time
-            dateValue = dateFormatter.string(from: currentDate)
+            // For stop: timestamp should reflect elapsed time
             let elapsedSeconds = timerModel.elapsedTime
             let elapsedDate = Date(timeIntervalSince1970: elapsedSeconds)
             timestampValue = dateFormatter.string(from: elapsedDate)
@@ -274,6 +328,38 @@ struct TasksView: View {
         print("📤 Parameters: id=\(task.apiId ?? task.id), action=\(action), data=\(timerModel.formattedTime), timestamp=\(timestampValue)")
         actionsManager.executeAction(timerAction, parameters: parameters)
         print("📤 Action executed")
+    }
+    
+    private func handleTaskCreation(type: TaskCreationType) {
+        print("📝 Creating task of type: \(type.rawValue)")
+        
+        switch type {
+        case .form:
+            print("🗂️ Opening task form")
+            showingTaskFormView = true
+            
+        case .microphone:
+            print("🎤 Starting audio recording")
+            showingAudioRecorderView = true
+            
+        case .screen:
+            print("🖥️ Starting screen recording")
+            showingScreenRecorderView = true
+        }
+    }
+    
+    private func addTaskToSystem(_ task: TaskItem) {
+        print("✅ Adding task to system: \(task.title)")
+        
+        // Add to TasksManager
+        tasksManager.tasks.append(task)
+        
+        // Optionally set as active task
+        if tasksManager.tasks.count == 1 {
+            activeTaskId = task.id
+        }
+        
+        print("📊 Total tasks: \(tasksManager.tasks.count)")
     }
 }
 
@@ -555,58 +641,4 @@ struct TaskItemView: View {
     }
 }
 
-// MARK: - Task Data Models
 
-struct TaskItem: Identifiable, Equatable {
-    var id: String { apiId ?? title }
-    var title: String
-    var description: String
-    var status: TaskStatus
-    var priority: TaskPriority
-    var isCompleted: Bool
-    var dueDate: Date?
-    var createdAt: Date?
-    var url: String?
-    var apiId: String?
-    var tags: [String]
-    
-    init(title: String, description: String, status: TaskStatus, priority: TaskPriority, isCompleted: Bool, dueDate: Date? = nil, createdAt: Date? = nil, url: String? = nil, apiId: String? = nil, tags: [String] = []) {
-        self.title = title
-        self.description = description
-        self.status = status
-        self.priority = priority
-        self.isCompleted = isCompleted
-        self.dueDate = dueDate
-        self.createdAt = createdAt
-        self.url = url
-        self.apiId = apiId
-        self.tags = tags
-    }
-    
-    static func == (lhs: TaskItem, rhs: TaskItem) -> Bool {
-        return lhs.id == rhs.id &&
-               lhs.title == rhs.title &&
-               lhs.description == rhs.description &&
-               lhs.isCompleted == rhs.isCompleted &&
-               lhs.status == rhs.status &&
-               lhs.priority == rhs.priority
-    }
-}
-
-enum TaskStatus: String, CaseIterable {
-    case todo = "todo"
-    case inprogress = "inprogress"
-    
-    var displayName: String {
-        switch self {
-        case .todo: return "To Do"
-        case .inprogress: return "In Progress"
-        }
-    }
-}
-
-enum TaskPriority: String, CaseIterable {
-    case high = "high"
-    case medium = "medium"
-    case low = "low"
-}
