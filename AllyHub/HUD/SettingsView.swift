@@ -6,21 +6,21 @@ struct SettingsView: View {
     @ObservedObject var keyboardShortcutsSettings: KeyboardShortcutsSettings
     
     @State private var chatAccordionExpanded = false
+    @State private var tasksAccordionExpanded = false
     @State private var notificationsAccordionExpanded = false
     @State private var actionsAccordionExpanded = false
     @State private var appearanceAccordionExpanded = true
-    @State private var communicationAccordionExpanded = false
     @State private var keyboardShortcutsAccordionExpanded = false
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 chatAccordion
+                tasksAccordion
                 notificationsAccordion
                 actionsAccordion
                 keyboardShortcutsAccordion
                 appearanceAccordion
-                communicationAccordion
             }
             .padding()
         }
@@ -70,6 +70,9 @@ struct SettingsView: View {
     
     private var keyboardShortcutsSettingsView: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Accessibility permissions notice
+            accessibilityPermissionsView
+            
             // Toggle Panel Shortcut
             keyboardShortcutField(
                 title: "Toggle Panel",
@@ -90,6 +93,65 @@ struct SettingsView: View {
                 }
             )
         }
+    }
+    
+    @State private var showingAccessibilityAlert = false
+    
+    private var accessibilityPermissionsView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .font(.system(size: 16))
+                
+                Text("Global Shortcuts Permissions")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+            }
+            
+            Text("For global keyboard shortcuts to work, AllyHub needs Accessibility permissions.")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
+            
+            Button("Open System Preferences") {
+                showAccessibilityPreferences()
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                LinearGradient(
+                    colors: [Color.orange.opacity(0.7), Color.orange.opacity(0.5)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(Color.orange.opacity(0.1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .alert("Accessibility Permissions Required", isPresented: $showingAccessibilityAlert) {
+            Button("Open System Preferences") {
+                showAccessibilityPreferences()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("To enable global keyboard shortcuts, please:\n\n1. Open System Preferences > Privacy & Security > Accessibility\n2. Find AllyHub in the list\n3. Toggle it ON\n4. Restart AllyHub")
+        }
+    }
+    
+    private func showAccessibilityPreferences() {
+        // Try to open System Preferences directly to Accessibility
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        NSWorkspace.shared.open(url)
     }
     
     private func keyboardShortcutField(
@@ -636,27 +698,27 @@ struct SettingsView: View {
         }
     }
     
-    // MARK: - Communication Accordion
+    // MARK: - Tasks Accordion
     
-    private var communicationAccordion: some View {
+    private var tasksAccordion: some View {
         VStack(spacing: 0) {
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    communicationAccordionExpanded.toggle()
+                    tasksAccordionExpanded.toggle()
                 }
             }) {
                 HStack {
-                    Image(systemName: "network")
+                    Image(systemName: "checkmark.circle")
                         .font(.system(size: 16))
                         .foregroundStyle(.white)
                     
-                    Text("Communication")
+                    Text("Tasks")
                         .font(.headline)
                         .foregroundStyle(.white)
                     
                     Spacer()
                     
-                    Image(systemName: communicationAccordionExpanded ? "chevron.down" : "chevron.right")
+                    Image(systemName: tasksAccordionExpanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
                 }
@@ -667,8 +729,8 @@ struct SettingsView: View {
             }
             .buttonStyle(.plain)
             
-            if communicationAccordionExpanded {
-                communicationSettingsView
+            if tasksAccordionExpanded {
+                tasksSettingsView
                     .padding(.horizontal, 12)
                     .padding(.vertical, 12)
                     .background(Color.white.opacity(0.05))
@@ -678,18 +740,24 @@ struct SettingsView: View {
         }
     }
     
-    private var communicationSettingsView: some View {
+    private var tasksSettingsView: some View {
         VStack(alignment: .leading, spacing: 16) {
-            urlConfigurationField(
-                title: "Tasks Fetch URL",
+            chatUrlField(
+                title: "Fetch URL",
                 placeholder: "Enter URL to fetch tasks",
                 value: $communicationSettings.tasksFetchURL
             )
             
-            urlConfigurationField(
-                title: "Task Update URL",
+            chatUrlField(
+                title: "Update URL", 
                 placeholder: "Enter URL to update task status",
                 value: $communicationSettings.taskUpdateURL
+            )
+            
+            chatUrlField(
+                title: "Create URL",
+                placeholder: "Enter URL to create new tasks",
+                value: $communicationSettings.taskCreateURL
             )
         }
     }

@@ -11,3 +11,4 @@
 - [x] akcje (wysylanie akcji get / post)
 - [x] sterowanie szerokoscia
 - [x] skroty klawiszowe
+- [ ] globalne skróty

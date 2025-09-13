@@ -4,6 +4,7 @@ import SwiftUI
 final class CommunicationSettings: ObservableObject {
     @Published var tasksFetchURL: String = ""
     @Published var taskUpdateURL: String = ""
+    @Published var taskCreateURL: String = ""
     @Published var chatHistoryURL: String = ""
     @Published var chatStreamURL: String = ""
     @Published var chatEnableStream: Bool = false
@@ -21,6 +22,7 @@ final class CommunicationSettings: ObservableObject {
     private func loadSettings() {
         tasksFetchURL = UserDefaults.standard.string(forKey: "AllyHub.TasksFetchURL") ?? ""
         taskUpdateURL = UserDefaults.standard.string(forKey: "AllyHub.TaskUpdateURL") ?? ""
+        taskCreateURL = UserDefaults.standard.string(forKey: "AllyHub.TaskCreateURL") ?? ""
         chatHistoryURL = UserDefaults.standard.string(forKey: "AllyHub.ChatHistoryURL") ?? ""
         chatStreamURL = UserDefaults.standard.string(forKey: "AllyHub.ChatStreamURL") ?? ""
         chatEnableStream = UserDefaults.standard.bool(forKey: "AllyHub.ChatEnableStream")
@@ -35,6 +37,7 @@ final class CommunicationSettings: ObservableObject {
     func saveSettings() {
         UserDefaults.standard.set(tasksFetchURL, forKey: "AllyHub.TasksFetchURL")
         UserDefaults.standard.set(taskUpdateURL, forKey: "AllyHub.TaskUpdateURL")
+        UserDefaults.standard.set(taskCreateURL, forKey: "AllyHub.TaskCreateURL")
         UserDefaults.standard.set(chatHistoryURL, forKey: "AllyHub.ChatHistoryURL")
         UserDefaults.standard.set(chatStreamURL, forKey: "AllyHub.ChatStreamURL")
         UserDefaults.standard.set(chatEnableStream, forKey: "AllyHub.ChatEnableStream")

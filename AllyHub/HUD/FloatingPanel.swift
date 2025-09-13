@@ -126,7 +126,7 @@ final class FloatingPanel: NSPanel {
         }
     }
     
-    private func setupKeyboardShortcuts() {
+    private func setupKeyboardShortcuts() {        
         // Remove existing monitors if any
         if let monitor = localEventMonitor {
             NSEvent.removeMonitor(monitor)
@@ -135,24 +135,39 @@ final class FloatingPanel: NSPanel {
             NSEvent.removeMonitor(monitor)
         }
         
+        print("🎯 Setting up keyboard shortcuts...")
+        print("📍 Toggle Panel: \(keyboardShortcutsSettings.togglePanelShortcut.displayName)")
+        print("📍 Next Tab: \(keyboardShortcutsSettings.nextTabShortcut.displayName)")
+        
         // Create a local event monitor for keyboard shortcuts
         localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            print("📝 Local event monitor triggered")
             return self?.handleKeyboardShortcut(event) ?? event
         }
         
         // Create a global event monitor for keyboard shortcuts
         globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            print("🌍 Global event monitor triggered")
             _ = self?.handleKeyboardShortcut(event)
         }
+        
+        print("✅ Keyboard shortcuts setup complete")
+        print("🎫 Local monitor: \(localEventMonitor != nil)")
+        print("🌍 Global monitor: \(globalEventMonitor != nil)")
     }
     
     private func handleKeyboardShortcut(_ event: NSEvent) -> NSEvent? {
         let keyCode = Int(event.keyCode)
         let modifierFlags = event.modifierFlags
         
+        // Debug: Print all key events
+        print("🔍 Key event: keyCode=\(keyCode), modifiers=\(modifierFlags)")
+        print("🎯 Looking for: keyCode=\(keyboardShortcutsSettings.togglePanelShortcut.key.keyCode), modifiers=\(keyboardShortcutsSettings.togglePanelShortcut.modifiers.flags)")
+        
         // Check toggle panel shortcut
         if keyCode == keyboardShortcutsSettings.togglePanelShortcut.key.keyCode &&
            modifierFlags.intersection([.command, .option, .control, .shift]) == keyboardShortcutsSettings.togglePanelShortcut.modifiers.flags {
+            print("✅ Toggle panel shortcut matched!")
             DispatchQueue.main.async { [weak self] in
                 self?.toggleExpansion()
             }
