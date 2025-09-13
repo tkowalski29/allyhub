@@ -3,7 +3,7 @@
 - [ ] rozmowa w malym okienku
 - [x] taski 
 - [x] taski akcje
-- [ ] time tracker
+- [x] time tracker
 - [ ] dodawanie taska (api)
 - [ ] dyktowanie taska (api + wisper)
 - [ ] nagrywanie rozmowy np google meet -> task

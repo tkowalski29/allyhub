@@ -4,7 +4,7 @@ import Combine
 @MainActor
 final class TimerModel: ObservableObject {
     // MARK: - Published Properties
-    @Published var remainingTime: TimeInterval = 60 * 60 // 60 minutes in seconds
+    @Published var elapsedTime: TimeInterval = 0 // elapsed seconds from 0
     @Published var isRunning = false
     @Published var isPaused = false
     
@@ -16,24 +16,24 @@ final class TimerModel: ObservableObject {
     private let timerContainer = TimerContainer()
     
     // UserDefaults keys
-    private let remainingTimeKey = "AllyHub_RemainingTime"
+    private let elapsedTimeKey = "AllyHub_ElapsedTime"
     private let isRunningKey = "AllyHub_IsRunning"
     private let lastSaveTimeKey = "AllyHub_LastSaveTime"
     
     // MARK: - Computed Properties
     var formattedTime: String {
-        let hours = Int(remainingTime) / 3600
-        let minutes = (Int(remainingTime) % 3600) / 60
-        let seconds = Int(remainingTime) % 60
+        let hours = Int(elapsedTime) / 3600
+        let minutes = (Int(elapsedTime) % 3600) / 60
+        let seconds = Int(elapsedTime) % 60
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
     
     var progress: Double {
-        return max(0, min(1, (totalTime - remainingTime) / totalTime))
+        return max(0, min(1, elapsedTime / totalTime))
     }
     
     var isCompleted: Bool {
-        return remainingTime <= 0
+        return elapsedTime >= totalTime
     }
     
     // MARK: - Initialization
@@ -78,7 +78,7 @@ final class TimerModel: ObservableObject {
     
     func reset() {
         stop()
-        remainingTime = totalTime
+        elapsedTime = 0
         
         saveTimerState()
     }
@@ -99,21 +99,23 @@ final class TimerModel: ObservableObject {
     }
     
     private func tick() {
-        guard isRunning && remainingTime > 0 else {
+        guard isRunning else { return }
+        
+        elapsedTime += 1
+        
+        // Check if completed (optional - can run indefinitely)
+        if elapsedTime >= totalTime {
             complete()
             return
         }
         
-        remainingTime = max(0, remainingTime - 1)
-        
         // Save state periodically (every 10 seconds to avoid excessive I/O)
-        if Int(remainingTime) % 10 == 0 {
+        if Int(elapsedTime) % 10 == 0 {
             saveTimerState()
         }
     }
     
     private func complete() {
-        remainingTime = 0
         stop()
         
         // Post notification for timer completion
@@ -122,7 +124,7 @@ final class TimerModel: ObservableObject {
     
     private func saveTimerState() {
         let userDefaults = UserDefaults.standard
-        userDefaults.set(remainingTime, forKey: remainingTimeKey)
+        userDefaults.set(elapsedTime, forKey: elapsedTimeKey)
         userDefaults.set(isRunning, forKey: isRunningKey)
         userDefaults.set(Date(), forKey: lastSaveTimeKey)
     }
@@ -130,28 +132,24 @@ final class TimerModel: ObservableObject {
     private func loadTimerState() {
         let userDefaults = UserDefaults.standard
         
-        // Load saved remaining time
-        let savedRemainingTime = userDefaults.double(forKey: remainingTimeKey)
-        if savedRemainingTime > 0 {
-            remainingTime = savedRemainingTime
-        }
+        // Load saved elapsed time
+        let savedElapsedTime = userDefaults.double(forKey: elapsedTimeKey)
+        elapsedTime = max(0, savedElapsedTime)
         
         // Check if timer was running when app was closed
         let wasRunning = userDefaults.bool(forKey: isRunningKey)
         if wasRunning, let lastSaveTime = userDefaults.object(forKey: lastSaveTimeKey) as? Date {
-            // Calculate elapsed time while app was closed
-            let elapsedTime = Date().timeIntervalSince(lastSaveTime)
-            remainingTime = max(0, remainingTime - elapsedTime)
+            // Calculate additional elapsed time while app was closed
+            let additionalElapsedTime = Date().timeIntervalSince(lastSaveTime)
+            elapsedTime += additionalElapsedTime
             
-            // If there's still time remaining and it was running, continue the timer
-            if remainingTime > 0 {
-                isPaused = true // Start in paused state, user can resume
-            }
+            // Start in paused state, user can resume
+            isPaused = true
         }
         
-        // Clean up if timer was completed
-        if remainingTime <= 0 {
-            remainingTime = 0
+        // Clean up if needed
+        if elapsedTime < 0 {
+            elapsedTime = 0
             isRunning = false
             isPaused = false
         }

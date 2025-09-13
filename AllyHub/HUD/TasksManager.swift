@@ -5,7 +5,8 @@ import Foundation
 class TasksManager: ObservableObject {
     @Published var tasks: [TaskItem] = []
     @Published var tasksCount: Int = 0
-    @Published var expandedTaskId: UUID?
+    @Published var expandedTaskId: String?
+    @Published var statusOrder: [String] = ["todo", "inprogress"] // Default order, updated from API
     
     private let communicationSettings: CommunicationSettings
     
@@ -271,6 +272,22 @@ class TasksManager: ObservableObject {
         tasks = newTasks
         tasksCount = response.count
         
+        // Update status order from API if provided
+        if let apiStatusOrder = response.priority_status {
+            // Convert API status strings to our internal format
+            statusOrder = apiStatusOrder.map { status in
+                switch status.lowercased() {
+                case "todo", "to do":
+                    return "todo"
+                case "in progress", "inprogress":
+                    return "inprogress"
+                default:
+                    return status.lowercased()
+                }
+            }
+            print("✅ Updated status order from API: \(statusOrder)")
+        }
+        
         print("✅ Successfully fetched \(newTasks.count) tasks, total count: \(response.count)")
     }
     
@@ -337,6 +354,7 @@ class TasksManager: ObservableObject {
 struct TasksResponse: Codable {
     let collection: [APITask]
     let count: Int
+    let priority_status: [String]?
 }
 
 struct APITask: Codable {

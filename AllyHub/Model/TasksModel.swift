@@ -53,9 +53,6 @@ final class TasksModel: ObservableObject {
     // MARK: - Initialization
     init() {
         loadTasks()
-        if tasks.isEmpty {
-            setupMockTasks()
-        }
     }
     
     // MARK: - Public Methods
@@ -124,7 +121,6 @@ final class TasksModel: ObservableObject {
     }
     
     func resetTasks() {
-        setupMockTasks()
         currentTaskIndex = 0
         saveTasks()
     }
@@ -145,17 +141,6 @@ final class TasksModel: ObservableObject {
         
         // Save current task index
         userDefaults.set(currentTaskIndex, forKey: currentTaskIndexKey)
-    }
-    
-    // MARK: - Private Methods
-    private func setupMockTasks() {
-        tasks = [
-            Task(title: "Email triage"),
-            Task(title: "Spec doc review"),
-            Task(title: "Prototype create"),
-            Task(title: "Break")
-        ]
-        currentTaskIndex = 0
     }
     
     private func loadTasks() {

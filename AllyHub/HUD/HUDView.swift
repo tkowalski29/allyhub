@@ -35,6 +35,7 @@ struct HUDView: View {
     @StateObject private var notificationsManager: NotificationsManager
     @StateObject private var tasksManager: TasksManager
     @StateObject private var actionsManager: ActionsManager
+    @AppStorage("activeTaskId") private var activeTaskId: String?
     @State private var isRefreshing = false
     @State private var isRefreshButtonAnimating = false
     @State private var notificationsRefreshTimer: Timer?
@@ -160,24 +161,102 @@ struct HUDView: View {
         }
     }
     
+    // MARK: - Computed Properties
+    private var activeTask: TaskItem? {
+        guard let activeTaskId = activeTaskId else { return nil }
+        return tasksManager.tasks.first { $0.id == activeTaskId }
+    }
+    
+    // MARK: - Timer Actions
+    private func startTimer() {
+        print("🟢 startTimer() called")
+        timerModel.start()
+        sendTimerAction(action: "start")
+    }
+    
+    private func stopTimer() {
+        print("🔴 stopTimer() called")
+        timerModel.pause()
+        sendTimerAction(action: "stop")
+    }
+    
+    private func sendTimerAction(action: String) {
+        print("📤 sendTimerAction() called with action: \(action)")
+        print("📤 taskUpdateURL: \(communicationSettings.taskUpdateURL)")
+        print("📤 actionsManager available: \(actionsManager != nil)")
+        print("📤 activeTask: \(activeTask?.title ?? "nil")")
+        
+        // Get current date for start action, elapsed time for stop action
+        let currentDate = Date()
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        let dateValue: String
+        let timestampValue: String
+        
+        if action == "start" {
+            // For start: use current date and timestamp
+            dateValue = dateFormatter.string(from: currentDate)
+            timestampValue = dateFormatter.string(from: currentDate)
+        } else {
+            // For stop: use current date but timestamp should reflect elapsed time
+            dateValue = dateFormatter.string(from: currentDate)
+            let elapsedSeconds = timerModel.elapsedTime
+            let elapsedDate = Date(timeIntervalSince1970: elapsedSeconds)
+            timestampValue = dateFormatter.string(from: elapsedDate)
+        }
+        
+        // Create timer action with all required fields
+        let timerAction = ActionItem(
+            id: "timer_\(action)_\(UUID().uuidString)",
+            title: "Timer \(action.capitalized)",
+            message: "Timer action: \(action) for task: \(activeTask?.title ?? "No active task")",
+            url: communicationSettings.taskUpdateURL,
+            method: "POST",
+            parameters: [
+                "id": ActionParameter(type: "string", placeholder: "Task ID"),
+                "action": ActionParameter(type: "string", placeholder: "Timer action"),
+                "task_name": ActionParameter(type: "string", placeholder: "Task name"),
+                "data": ActionParameter(type: "string", placeholder: "Timer data"),
+                "timestamp": ActionParameter(type: "string", placeholder: "Timestamp")
+            ]
+        )
+        
+        // Execute the action with all required parameters
+        let parameters: [String: ActionParameterValue] = [
+            "id": .string(activeTask?.apiId ?? activeTask?.id ?? "no_id"),
+            "action": .string(action),
+            "task_name": .string(activeTask?.title ?? "No active task"),
+            "data": .string(timerModel.formattedTime),
+            "timestamp": .string(timestampValue)
+        ]
+        
+        print("📤 About to execute action: \(timerAction.title)")
+        print("📤 Parameters: id=\(activeTask?.apiId ?? activeTask?.id ?? "no_id"), action=\(action), data=\(timerModel.formattedTime), timestamp=\(timestampValue)")
+        actionsManager.executeAction(timerAction, parameters: parameters)
+        print("📤 Action executed")
+    }
+    
     // MARK: - Compact View
     private var compactView: some View {
         HStack(spacing: 0) {
             // Left section (50%) - Always content, never covered by hover
             HStack {
                 if gradientSettings.compactBarMode == .tasks {
-                    // Show task and time in tasks mode
+                    // Show active task and time when timer is running
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(tasksModel.currentTaskTitle)
+                        Text(activeTask?.title ?? "No active task")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.white)
                             .lineLimit(1)
                             .truncationMode(.tail)
                         
-                        Text(timerModel.formattedTime)
-                            .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.white)
-                            .contentTransition(.numericText())
+                        if timerModel.isRunning {
+                            Text(timerModel.formattedTime)
+                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.white)
+                                .contentTransition(.numericText())
+                        }
                     }
                 } else {
                     // Show chat input when in chat mode - full width of left section
@@ -199,7 +278,7 @@ struct HUDView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 6)
             .contentShape(Rectangle())
             
             // Right section (50%) - Hover area + notification badge
@@ -220,9 +299,15 @@ struct HUDView: View {
                         }
                         .buttonStyle(.plain)
                         
-                        // Next Task button
-                        Button(action: { tasksModel.nextTask() }) {
-                            Image(systemName: "arrow.right")
+                        // Start/Stop Timer button
+                        Button(action: {
+                            if timerModel.isRunning {
+                                stopTimer()
+                            } else {
+                                startTimer()
+                            }
+                        }) {
+                            Image(systemName: timerModel.isRunning ? "pause.fill" : "play.fill")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.white)
                                 .frame(width: 28, height: 28)
@@ -663,25 +748,7 @@ struct HUDView: View {
     
     // MARK: - Tasks Tab View (broken into smaller components)
     private var tasksTabView: some View {
-        VStack(spacing: 0) {
-            // Timer and current task section at top
-            VStack(spacing: 8) {
-                Text(tasksModel.currentTaskTitle)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                
-                Text(timerModel.formattedTime)
-                    .font(.system(size: 24, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .contentTransition(.numericText())
-            }
-            .padding(.vertical, 16)
-            .padding(.horizontal, 12)
-            
-            // Tasks collection using new TasksView
-            TasksView(tasksManager: tasksManager)
-        }
+        TasksView(tasksManager: tasksManager, tasksModel: tasksModel, timerModel: timerModel, actionsManager: actionsManager, communicationSettings: communicationSettings)
     }
     
     private var notificationsTabView: some View {

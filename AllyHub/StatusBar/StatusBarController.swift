@@ -133,7 +133,7 @@ final class StatusBarController: NSObject {
             }
             .store(in: &cancellables)
         
-        timerModel.$remainingTime
+        timerModel.$elapsedTime
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateStatusItemAppearance()

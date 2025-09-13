@@ -168,7 +168,7 @@ struct HUDExpandedView: View {
                     }
                 }
                 
-                if timerModel.remainingTime < 60 * 60 && !timerModel.isRunning {
+                if timerModel.elapsedTime > 0 && !timerModel.isRunning {
                     ControlButton(
                         title: "Reset",
                         icon: "arrow.clockwise",

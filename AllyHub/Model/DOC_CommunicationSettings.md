@@ -27,7 +27,8 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
       "updated_at": "ISO8601 timestamp"
     }
   ],
-  "count": number
+  "count": number,
+  "priority_status": []"string"
 }
 ```
 
