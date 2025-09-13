@@ -1,7 +1,8 @@
 - [x] zmiana nazwy
 - [ ] chat
 - [ ] rozmowa w malym okienku
-- [ ] taski 
+- [x] taski 
+- [x] taski akcje
 - [ ] time tracker
 - [ ] dodawanie taska (api)
 - [ ] dyktowanie taska (api + wisper)

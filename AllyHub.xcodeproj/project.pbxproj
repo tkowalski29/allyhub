@@ -25,6 +25,8 @@
 		AB8049B72E75301E006AAED5 /* ActionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B62E75301E006AAED5 /* ActionsView.swift */; };
 		AB8049B82E75301E006AAED5 /* ActionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B52E75301E006AAED5 /* ActionsManager.swift */; };
 		AB8049BA2E7537C1006AAED5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B92E7537C1006AAED5 /* SettingsView.swift */; };
+		AB8049BD2E75486D006AAED5 /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049BC2E75486D006AAED5 /* TasksView.swift */; };
+		AB8049BE2E75486D006AAED5 /* TasksManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049BB2E75486D006AAED5 /* TasksManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,6 +62,8 @@
 		AB8049B52E75301E006AAED5 /* ActionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsManager.swift; sourceTree = "<group>"; };
 		AB8049B62E75301E006AAED5 /* ActionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsView.swift; sourceTree = "<group>"; };
 		AB8049B92E7537C1006AAED5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AB8049BB2E75486D006AAED5 /* TasksManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksManager.swift; sourceTree = "<group>"; };
+		AB8049BC2E75486D006AAED5 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,6 +144,8 @@
 		101234567890ABCDEF000070 /* HUD */ = {
 			isa = PBXGroup;
 			children = (
+				AB8049BB2E75486D006AAED5 /* TasksManager.swift */,
+				AB8049BC2E75486D006AAED5 /* TasksView.swift */,
 				AB8049B92E7537C1006AAED5 /* SettingsView.swift */,
 				AB8049B52E75301E006AAED5 /* ActionsManager.swift */,
 				AB8049B62E75301E006AAED5 /* ActionsView.swift */,
@@ -280,6 +286,8 @@
 				501234567890ABCDEF000004 /* FloatingPanel.swift in Sources */,
 				501234567890ABCDEF000005 /* HUDView.swift in Sources */,
 				501234567890ABCDEF000006 /* HUDExpandedView.swift in Sources */,
+				AB8049BD2E75486D006AAED5 /* TasksView.swift in Sources */,
+				AB8049BE2E75486D006AAED5 /* TasksManager.swift in Sources */,
 				501234567890ABCDEF000007 /* TimerModel.swift in Sources */,
 				501234567890ABCDEF000008 /* TasksModel.swift in Sources */,
 				AB8049B32E74B5C4006AAED5 /* NotificationsView.swift in Sources */,

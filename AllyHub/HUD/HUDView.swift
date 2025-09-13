@@ -33,6 +33,7 @@ struct HUDView: View {
     ]
     @State private var currentConversationId: UUID?
     @StateObject private var notificationsManager: NotificationsManager
+    @StateObject private var tasksManager: TasksManager
     @StateObject private var actionsManager: ActionsManager
     @State private var isRefreshing = false
     @State private var isRefreshButtonAnimating = false
@@ -79,6 +80,7 @@ struct HUDView: View {
         self.onExpand = onExpand
         self.onClose = onClose
         self._notificationsManager = StateObject(wrappedValue: NotificationsManager(communicationSettings: communicationSettings))
+        self._tasksManager = StateObject(wrappedValue: TasksManager(communicationSettings: communicationSettings))
         self._actionsManager = StateObject(wrappedValue: ActionsManager(communicationSettings: communicationSettings))
     }
     
@@ -120,6 +122,8 @@ struct HUDView: View {
             startNotificationRefreshTimer()
             // Fetch notifications immediately when view appears
             refreshNotifications()
+            // Fetch tasks when view appears
+            tasksManager.fetchTasks()
             // Fetch actions when view appears
             actionsManager.fetchActions()
         }
@@ -294,8 +298,24 @@ struct HUDView: View {
                         .clipShape(Capsule())
                 }
                 
-                // 4. Refresh button - for Notifications and Actions tabs
-                if selectedTab == .notifications || selectedTab == .actions {
+                // 4. Add Task button - for Tasks tab only
+                if selectedTab == .tasks {
+                    Button(action: {
+                        // TODO: Add new task functionality
+                        print("Add new task button pressed")
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Color.blue.opacity(0.7))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // 5. Refresh button - for Notifications, Actions, and Tasks tabs
+                if selectedTab == .notifications || selectedTab == .actions || selectedTab == .tasks {
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.6)) {
                             isRefreshButtonAnimating = true
@@ -305,6 +325,8 @@ struct HUDView: View {
                             notificationsManager.fetchNotifications()
                         } else if selectedTab == .actions {
                             actionsManager.fetchActions()
+                        } else if selectedTab == .tasks {
+                            tasksManager.fetchTasks()
                         }
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
@@ -356,20 +378,6 @@ struct HUDView: View {
     }
     
     
-    private var timerTaskSection: some View {
-        VStack(spacing: 8) {
-            Text(tasksModel.currentTaskTitle)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-            
-            Text(timerModel.formattedTime)
-                .font(.system(size: 24, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white)
-                .contentTransition(.numericText())
-        }
-        .padding(.vertical, 8)
-    }
     
     private var tabContentView: some View {
         // Temporary replacement for TabView to test if TabView is blocking interactions
@@ -655,108 +663,24 @@ struct HUDView: View {
     
     // MARK: - Tasks Tab View (broken into smaller components)
     private var tasksTabView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            timerTaskSection
-            allTasksList
-            Spacer()
-        }
-        .padding(12)
-    }
-    
-    private var allTasksList: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("All Tasks")
-                .font(.headline)
-                .foregroundStyle(.white)
-            
-            LazyVStack(spacing: 8) {
-                ForEach(Array(tasksModel.tasks.enumerated()), id: \.offset) { index, task in
-                    taskRow(task: task, index: index)
-                }
-            }
-        }
-    }
-    
-    private func taskRow(task: TasksModel.Task, index: Int) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    // Current task indicator
-                    if index == tasksModel.currentTaskIndex {
-                        Circle()
-                            .fill(Color.blue)
-                            .frame(width: 8, height: 8)
-                    } else {
-                        Circle()
-                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                            .frame(width: 8, height: 8)
-                    }
-                    
-                    Text(task.title)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                }
+        VStack(spacing: 0) {
+            // Timer and current task section at top
+            VStack(spacing: 8) {
+                Text(tasksModel.currentTaskTitle)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
                 
-                // Status
-                Text(index == tasksModel.currentTaskIndex ? "Active" : (task.isCompleted ? "Completed" : "Pending"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(index == tasksModel.currentTaskIndex ? .blue : 
-                                   (task.isCompleted ? .green : .white.opacity(0.7)))
+                Text(timerModel.formattedTime)
+                    .font(.system(size: 24, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
             }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 12)
             
-            Spacer()
-            
-            // Action buttons
-            taskActionButtons(task: task, index: index)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(index == tasksModel.currentTaskIndex ? 
-                   Color.blue.opacity(0.1) : Color.white.opacity(0.05))
-        .cornerRadius(8)
-    }
-    
-    private func taskActionButtons(task: TasksModel.Task, index: Int) -> some View {
-        HStack(spacing: 8) {
-            // Switch to active button
-            if index != tasksModel.currentTaskIndex {
-                Button(action: {
-                    tasksModel.goToTask(at: index)
-                }) {
-                    Image(systemName: "play.circle")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.blue)
-                }
-                .buttonStyle(.plain)
-            }
-            
-            // Toggle completion
-            Button(action: {
-                if index == tasksModel.currentTaskIndex {
-                    tasksModel.toggleCurrentTaskCompletion()
-                } else {
-                    // Toggle completion for non-current tasks
-                    tasksModel.tasks[index].isCompleted.toggle()
-                    tasksModel.saveTasks()
-                }
-            }) {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16))
-                    .foregroundStyle(task.isCompleted ? .green : .white.opacity(0.7))
-            }
-            .buttonStyle(.plain)
-            
-            // Preview/Details button
-            Button(action: {
-                // TODO: Show task details
-                print("Show details for: \(task.title)")
-            }) {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 16))
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-            .buttonStyle(.plain)
+            // Tasks collection using new TasksView
+            TasksView(tasksManager: tasksManager)
         }
     }
     
@@ -975,6 +899,15 @@ struct HUDView: View {
     private func refreshNotifications() {
         isRefreshing = true
         notificationsManager.fetchNotifications()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            isRefreshing = false
+        }
+    }
+    
+    private func refreshTasks() {
+        isRefreshing = true
+        tasksManager.fetchTasks()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isRefreshing = false
