@@ -34,6 +34,7 @@ struct HUDView: View {
     @StateObject private var notificationsManager: NotificationsManager
     @StateObject private var actionsManager: ActionsManager
     @State private var isRefreshing = false
+    @State private var isRefreshButtonAnimating = false
     @State private var notificationsRefreshTimer: Timer?
     
     struct ChatMessage: Identifiable, Equatable {
@@ -271,8 +272,8 @@ struct HUDView: View {
                 
                 Spacer()
                 
-                // 3. Notification count (orange badge) - only when there are unread notifications
-                if notificationsManager.unreadNotificationsCount > 0 {
+                // 3. Notification count (orange badge) - only on Notifications tab when there are unread notifications
+                if selectedTab == .notifications && notificationsManager.unreadNotificationsCount > 0 {
                     Text("\(notificationsManager.unreadNotificationsCount)")
                         .font(.caption)
                         .fontWeight(.bold)
@@ -286,10 +287,20 @@ struct HUDView: View {
                 // 4. Refresh button - for Notifications and Actions tabs
                 if selectedTab == .notifications || selectedTab == .actions {
                     Button(action: {
+                        withAnimation(.easeInOut(duration: 0.6)) {
+                            isRefreshButtonAnimating = true
+                        }
+                        
                         if selectedTab == .notifications {
                             notificationsManager.fetchNotifications()
                         } else if selectedTab == .actions {
                             actionsManager.fetchActions()
+                        }
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isRefreshButtonAnimating = false
+                            }
                         }
                     }) {
                         Image(systemName: "arrow.clockwise")
@@ -298,6 +309,7 @@ struct HUDView: View {
                             .frame(width: 28, height: 28)
                             .background(Color.white.opacity(0.2))
                             .clipShape(Circle())
+                            .rotationEffect(.degrees(isRefreshButtonAnimating ? 360 : 0))
                     }
                     .buttonStyle(.plain)
                 }
