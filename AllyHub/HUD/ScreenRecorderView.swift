@@ -92,10 +92,11 @@ final class ScreenRecorderManager: ObservableObject {
                 let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
                 let outputURL = documentsPath.appendingPathComponent("screen_recording_\(Date().timeIntervalSince1970).mov")
                 
-                screenRecorder = try await createScreenRecorder(outputURL: outputURL)
-                try await screenRecorder?.startRecording()
+                let recorder = try await createScreenRecorder(outputURL: outputURL)
+                try await recorder.startRecording()
                 
                 await MainActor.run {
+                    screenRecorder = recorder
                     isRecording = true
                     recordingTime = 0
                     recordingURL = outputURL
@@ -121,9 +122,11 @@ final class ScreenRecorderManager: ObservableObject {
         guard isRecording else { return }
         
         Task {
-            await screenRecorder?.stopRecording()
+            let recorder = await MainActor.run { screenRecorder }
+            await recorder?.stopRecording()
             
             await MainActor.run {
+                screenRecorder = nil
                 isRecording = false
                 timer?.invalidate()
                 timer = nil
@@ -591,7 +594,7 @@ struct ScreenRecorderFallbackView: View {
 // MARK: - Screen Recorder
 
 @available(macOS 12.3, *)
-final class ScreenRecorder {
+final class ScreenRecorder: @unchecked Sendable {
     private let stream: SCStream
     private let videoWriter: AVAssetWriter
     private let videoInput: AVAssetWriterInput
