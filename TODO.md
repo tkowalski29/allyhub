@@ -5,8 +5,9 @@
 - [ ] time tracker
 - [ ] dodawanie taska (api)
 - [ ] dyktowanie taska (api + wisper)
+- [ ] nagrywanie rozmowy np google meet -> task
 - [x] notyfikacje
 - [x] wyswietlanie nowej notyfikacji 
 - [x] akcje (wysylanie akcji get / post)
 - [x] sterowanie szerokoscia
-- [ ] skroty klawiszowe
+- [x] skroty klawiszowe

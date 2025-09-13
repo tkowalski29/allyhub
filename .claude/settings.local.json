@@ -3,7 +3,8 @@
     "allow": [
       "Bash(xcodebuild:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(swiftc:*)"
+      "Bash(swiftc:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,6 +6,7 @@ struct HUDView: View {
     @ObservedObject var tasksModel: TasksModel
     @ObservedObject var gradientSettings: GradientSettings
     @ObservedObject var communicationSettings: CommunicationSettings
+    @ObservedObject var keyboardShortcutsSettings: KeyboardShortcutsSettings
     
     let isExpanded: Bool
     let isOnLeftSide: Bool
@@ -63,6 +64,7 @@ struct HUDView: View {
          tasksModel: TasksModel, 
          gradientSettings: GradientSettings, 
          communicationSettings: CommunicationSettings,
+         keyboardShortcutsSettings: KeyboardShortcutsSettings,
          isExpanded: Bool,
          isOnLeftSide: Bool,
          onExpand: @escaping () -> Void,
@@ -71,6 +73,7 @@ struct HUDView: View {
         self.tasksModel = tasksModel
         self.gradientSettings = gradientSettings
         self.communicationSettings = communicationSettings
+        self.keyboardShortcutsSettings = keyboardShortcutsSettings
         self.isExpanded = isExpanded
         self.isOnLeftSide = isOnLeftSide
         self.onExpand = onExpand
@@ -119,6 +122,9 @@ struct HUDView: View {
             refreshNotifications()
             // Fetch actions when view appears
             actionsManager.fetchActions()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .nextTabKeyboardShortcut)) { _ in
+            nextTab()
         }
         .onDisappear {
             stopNotificationRefreshTimer()
@@ -231,6 +237,10 @@ struct HUDView: View {
                             .frame(width: 18, height: 18)
                             .background(Color.orange)
                             .clipShape(Circle())
+                    } else {
+                        // Invisible placeholder to maintain hover area when no notifications
+                        Color.clear
+                            .frame(width: 18, height: 18)
                     }
                 }
             }
@@ -376,7 +386,8 @@ struct HUDView: View {
             case .settings:
                 SettingsView(
                     communicationSettings: communicationSettings,
-                    gradientSettings: gradientSettings
+                    gradientSettings: gradientSettings,
+                    keyboardShortcutsSettings: keyboardShortcutsSettings
                 )
             }
         }
@@ -1053,6 +1064,18 @@ struct HUDView: View {
                 }
             }
         }.resume()
+    }
+    
+    // MARK: - Keyboard Shortcuts
+    
+    private func nextTab() {
+        guard isExpanded else { return }
+        
+        let allTabs = ExpandedTab.allCases
+        if let currentIndex = allTabs.firstIndex(of: selectedTab) {
+            let nextIndex = (currentIndex + 1) % allTabs.count
+            selectedTab = allTabs[nextIndex]
+        }
     }
 }
 

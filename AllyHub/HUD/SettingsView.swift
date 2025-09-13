@@ -3,12 +3,14 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var communicationSettings: CommunicationSettings
     @ObservedObject var gradientSettings: GradientSettings
+    @ObservedObject var keyboardShortcutsSettings: KeyboardShortcutsSettings
     
     @State private var chatAccordionExpanded = false
     @State private var notificationsAccordionExpanded = false
     @State private var actionsAccordionExpanded = false
     @State private var appearanceAccordionExpanded = true
     @State private var communicationAccordionExpanded = false
+    @State private var keyboardShortcutsAccordionExpanded = false
     
     var body: some View {
         ScrollView {
@@ -16,11 +18,180 @@ struct SettingsView: View {
                 chatAccordion
                 notificationsAccordion
                 actionsAccordion
+                keyboardShortcutsAccordion
                 appearanceAccordion
                 communicationAccordion
             }
             .padding()
         }
+    }
+    
+    // MARK: - Keyboard Shortcuts Accordion
+    
+    private var keyboardShortcutsAccordion: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    keyboardShortcutsAccordionExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "keyboard")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+                    
+                    Text("Keyboard Shortcuts")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    
+                    Spacer()
+                    
+                    Image(systemName: keyboardShortcutsAccordionExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            
+            if keyboardShortcutsAccordionExpanded {
+                keyboardShortcutsSettingsView
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .transition(.slide.combined(with: .opacity))
+            }
+        }
+    }
+    
+    private var keyboardShortcutsSettingsView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Toggle Panel Shortcut
+            keyboardShortcutField(
+                title: "Toggle Panel",
+                description: "Expand/collapse the floating panel",
+                shortcut: keyboardShortcutsSettings.togglePanelShortcut,
+                onUpdate: { key, modifiers in
+                    keyboardShortcutsSettings.setTogglePanelShortcut(key: key, modifiers: modifiers)
+                }
+            )
+            
+            // Next Tab Shortcut
+            keyboardShortcutField(
+                title: "Next Tab",
+                description: "Switch to the next tab in expanded view",
+                shortcut: keyboardShortcutsSettings.nextTabShortcut,
+                onUpdate: { key, modifiers in
+                    keyboardShortcutsSettings.setNextTabShortcut(key: key, modifiers: modifiers)
+                }
+            )
+        }
+    }
+    
+    private func keyboardShortcutField(
+        title: String,
+        description: String,
+        shortcut: KeyboardShortcutsSettings.KeyboardShortcut,
+        onUpdate: @escaping (KeyboardShortcutsSettings.Key, Set<KeyboardShortcutsSettings.Modifier>) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+                
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            
+            VStack(spacing: 12) {
+                // Current shortcut display
+                Text(shortcut.displayName)
+                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                
+                // Change button with Execute button styling
+                Menu("Change Shortcut") {
+                    // Modifier combinations
+                    ForEach(modifierCombinations, id: \.self) { modifiers in
+                        Menu(modifierDisplayName(modifiers)) {
+                            ForEach(commonKeys, id: \.self) { key in
+                                Button("\(modifierDisplayName(modifiers))\(key.displayName)") {
+                                    onUpdate(key, modifiers)
+                                }
+                            }
+                        }
+                    }
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.7), Color.blue.opacity(0.5)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    // Helper computed properties for keyboard shortcuts
+    private var modifierCombinations: [Set<KeyboardShortcutsSettings.Modifier>] {
+        [
+            [.command],
+            [.option],
+            [.control],
+            [.command, .option],
+            [.command, .shift],
+            [.command, .control],
+            [.option, .shift],
+            [.control, .shift],
+            [.command, .option, .shift]
+        ]
+    }
+    
+    private var commonKeys: [KeyboardShortcutsSettings.Key] {
+        [
+            .space, .tab, .escape, .enter,
+            .f1, .f2, .f3, .f4, .f5, .f6, .f7, .f8, .f9, .f10, .f11, .f12,
+            .a, .b, .c, .d, .e, .f, .g, .h, .i, .j, .k, .l, .m,
+            .n, .o, .p, .q, .r, .s, .t, .u, .v, .w, .x, .y, .z,
+            .num1, .num2, .num3, .num4, .num5, .num6, .num7, .num8, .num9, .num0
+        ]
+    }
+    
+    private func modifierDisplayName(_ modifiers: Set<KeyboardShortcutsSettings.Modifier>) -> String {
+        var parts: [String] = []
+        if modifiers.contains(.command) { parts.append("⌘") }
+        if modifiers.contains(.option) { parts.append("⌥") }
+        if modifiers.contains(.control) { parts.append("⌃") }
+        if modifiers.contains(.shift) { parts.append("⇧") }
+        return parts.joined()
     }
     
     // MARK: - Chat Accordion

@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let tasksModel = TasksModel()
     let gradientSettings = GradientSettings()
     let communicationSettings = CommunicationSettings()
+    let keyboardShortcutsSettings = KeyboardShortcutsSettings()
     
     // MARK: - Application Lifecycle
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -68,7 +69,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             timerModel: timerModel,
             tasksModel: tasksModel,
             gradientSettings: gradientSettings,
-            communicationSettings: communicationSettings
+            communicationSettings: communicationSettings,
+            keyboardShortcutsSettings: keyboardShortcutsSettings
         )
         floatingPanel?.appDelegate = self
         

@@ -7,6 +7,7 @@ final class FloatingPanel: NSPanel {
     private let tasksModel: TasksModel
     private let gradientSettings: GradientSettings
     private let communicationSettings: CommunicationSettings
+    private let keyboardShortcutsSettings: KeyboardShortcutsSettings
     private var hostingView: NSHostingView<HUDView>?
     private var compactSize: NSSize {
         return NSSize(width: gradientSettings.windowSize.width, height: 44)
@@ -24,12 +25,17 @@ final class FloatingPanel: NSPanel {
     
     weak var appDelegate: AppDelegate?
     
+    // Event monitors for global keyboard shortcuts
+    private var localEventMonitor: Any?
+    private var globalEventMonitor: Any?
+    
     // MARK: - Initialization
-    init(timerModel: TimerModel, tasksModel: TasksModel, gradientSettings: GradientSettings, communicationSettings: CommunicationSettings) {
+    init(timerModel: TimerModel, tasksModel: TasksModel, gradientSettings: GradientSettings, communicationSettings: CommunicationSettings, keyboardShortcutsSettings: KeyboardShortcutsSettings) {
         self.timerModel = timerModel
         self.tasksModel = tasksModel
         self.gradientSettings = gradientSettings
         self.communicationSettings = communicationSettings
+        self.keyboardShortcutsSettings = keyboardShortcutsSettings
         
         // Initialize panel with compact size
         super.init(
@@ -41,6 +47,19 @@ final class FloatingPanel: NSPanel {
         
         setupPanel()
         setupContent()
+        setupKeyboardShortcuts()
+    }
+    
+    deinit {
+        // Clean up event monitors - NSEvent.removeMonitor is thread-safe
+        DispatchQueue.main.async {
+            if let monitor = self.localEventMonitor {
+                NSEvent.removeMonitor(monitor)
+            }
+            if let monitor = self.globalEventMonitor {
+                NSEvent.removeMonitor(monitor)
+            }
+        }
     }
     
     // MARK: - Panel Setup
@@ -77,6 +96,7 @@ final class FloatingPanel: NSPanel {
             tasksModel: tasksModel,
             gradientSettings: gradientSettings,
             communicationSettings: communicationSettings,
+            keyboardShortcutsSettings: keyboardShortcutsSettings,
             isExpanded: isExpanded,
             isOnLeftSide: isOnLeftSide,
             onExpand: { [weak self] in
@@ -104,6 +124,58 @@ final class FloatingPanel: NSPanel {
         if !setFrameUsingName("AllyHubPanel") {
             center()
         }
+    }
+    
+    private func setupKeyboardShortcuts() {
+        // Remove existing monitors if any
+        if let monitor = localEventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        if let monitor = globalEventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        
+        // Create a local event monitor for keyboard shortcuts
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            return self?.handleKeyboardShortcut(event) ?? event
+        }
+        
+        // Create a global event monitor for keyboard shortcuts
+        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            _ = self?.handleKeyboardShortcut(event)
+        }
+    }
+    
+    private func handleKeyboardShortcut(_ event: NSEvent) -> NSEvent? {
+        let keyCode = Int(event.keyCode)
+        let modifierFlags = event.modifierFlags
+        
+        // Check toggle panel shortcut
+        if keyCode == keyboardShortcutsSettings.togglePanelShortcut.key.keyCode &&
+           modifierFlags.intersection([.command, .option, .control, .shift]) == keyboardShortcutsSettings.togglePanelShortcut.modifiers.flags {
+            DispatchQueue.main.async { [weak self] in
+                self?.toggleExpansion()
+            }
+            return nil // Consume the event
+        }
+        
+        // Check next tab shortcut (only when expanded)
+        if isExpanded &&
+           keyCode == keyboardShortcutsSettings.nextTabShortcut.key.keyCode &&
+           modifierFlags.intersection([.command, .option, .control, .shift]) == keyboardShortcutsSettings.nextTabShortcut.modifiers.flags {
+            DispatchQueue.main.async { [weak self] in
+                self?.nextTab()
+            }
+            return nil // Consume the event
+        }
+        
+        return event // Don't consume the event
+    }
+    
+    private func nextTab() {
+        // This will be handled by the HUDView - we need to add a way to communicate this
+        // For now, let's trigger a notification that the HUDView can observe
+        NotificationCenter.default.post(name: .nextTabKeyboardShortcut, object: nil)
     }
     
     // MARK: - Animation and Layout
@@ -173,6 +245,7 @@ final class FloatingPanel: NSPanel {
             tasksModel: tasksModel,
             gradientSettings: gradientSettings,
             communicationSettings: communicationSettings,
+            keyboardShortcutsSettings: keyboardShortcutsSettings,
             isExpanded: isExpanded,
             isOnLeftSide: isOnLeftSide,
             onExpand: { [weak self] in
