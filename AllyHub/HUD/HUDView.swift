@@ -13,6 +13,8 @@ struct HUDView: View {
     let onClose: () -> Void
     
     @State private var isHovering = false
+    @State private var isRightSectionHovering = false
+    @State private var isChatInputFocused = false
     @State private var selectedTab: ExpandedTab = .tasks
     @State private var chatTabChatAccordionExpanded = true
     @State private var conversationsAccordionExpanded = false
@@ -109,12 +111,7 @@ struct HUDView: View {
                 compactView
             }
         }
-        .frame(width: 300, height: isExpanded ? nil : 44)
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isHovering = hovering
-            }
-        }
+        .frame(width: gradientSettings.windowSize.width, height: isExpanded ? nil : 44)
         .onAppear {
             startNotificationRefreshTimer()
             // Fetch notifications immediately when view appears
@@ -154,15 +151,11 @@ struct HUDView: View {
     
     // MARK: - Compact View
     private var compactView: some View {
-        HStack(spacing: 12) {
-            if isHovering {
-                // Show icons when hovering
-                hoverControls
-                    .transition(.scale.combined(with: .opacity))
-            } else {
-                // Show different content based on compact bar mode
+        HStack(spacing: 0) {
+            // Left section (50%) - Always content, never covered by hover
+            HStack {
                 if gradientSettings.compactBarMode == .tasks {
-                    // Show task and time when not hovering
+                    // Show task and time in tasks mode
                     VStack(alignment: .leading, spacing: 2) {
                         Text(tasksModel.currentTaskTitle)
                             .font(.system(size: 12, weight: .medium))
@@ -175,92 +168,155 @@ struct HUDView: View {
                             .foregroundStyle(.white)
                             .contentTransition(.numericText())
                     }
+                } else {
+                    // Show chat input when in chat mode - full width of left section
+                    TextField("Type a message...", text: $chatInputText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .onTapGesture {
+                            isChatInputFocused = true
+                            isRightSectionHovering = false
+                        }
+                        .onSubmit {
+                            if !chatInputText.isEmpty {
+                                chatMessages.append(ChatMessage(content: chatInputText, isUser: true))
+                                chatInputText = ""
+                            }
+                            isChatInputFocused = false
+                        }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .contentShape(Rectangle())
+            
+            // Right section (50%) - Hover area + notification badge
+            HStack {
+                Spacer()
+                
+                if isRightSectionHovering && !isChatInputFocused {
+                    // Hover controls (only expand and next task)
+                    HStack(spacing: 8) {
+                        // Expand button
+                        Button(action: onExpand) {
+                            Image(systemName: isExpanded ? "chevron.left" : "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 28, height: 28)
+                                .background(Color.white.opacity(0.2))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // Next Task button
+                        Button(action: { tasksModel.nextTask() }) {
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 28, height: 28)
+                                .background(Color.white.opacity(0.2))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                     .transition(.scale.combined(with: .opacity))
-                    
-                    Spacer(minLength: 0)
-                    
-                    // Notification badge for unread notifications
+                } else {
+                    // Show notification badge when not hovering
                     if notificationsManager.unreadNotificationsCount > 0 {
                         Text("\(notificationsManager.unreadNotificationsCount)")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.black)
                             .frame(width: 18, height: 18)
-                            .background(Color.yellow)
+                            .background(Color.orange)
                             .clipShape(Circle())
                     }
-                } else {
-                    // Show chat input when in chat mode
-                    chatInputBar
-                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isRightSectionHovering = hovering && !isChatInputFocused
                 }
             }
         }
-        .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .animation(.easeInOut(duration: 0.2), value: isHovering)
+        .animation(.easeInOut(duration: 0.2), value: isRightSectionHovering)
+        .animation(.easeInOut(duration: 0.2), value: isChatInputFocused)
     }
     
     // MARK: - Expanded View
     private var expandedView: some View {
         VStack(spacing: 16) {
-            // Control buttons positioned based on panel side
-            HStack {
-                if isOnLeftSide {
-                    // Left side: buttons on left
-                    Group {
-                        // Collapse button
-                        Button(action: onExpand) {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.white.opacity(0.2))
-                                .clipShape(Circle())
+            // New header layout: collapse | tab name | notification count | refresh | close
+            HStack(spacing: 12) {
+                // 1. Collapse button (left)
+                Button(action: onExpand) {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.white.opacity(0.2))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                
+                // 2. Tab name
+                Text(selectedTab.rawValue)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                
+                Spacer()
+                
+                // 3. Notification count (orange badge) - only when there are unread notifications
+                if notificationsManager.unreadNotificationsCount > 0 {
+                    Text("\(notificationsManager.unreadNotificationsCount)")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange)
+                        .clipShape(Capsule())
+                }
+                
+                // 4. Refresh button - for Notifications and Actions tabs
+                if selectedTab == .notifications || selectedTab == .actions {
+                    Button(action: {
+                        if selectedTab == .notifications {
+                            notificationsManager.fetchNotifications()
+                        } else if selectedTab == .actions {
+                            actionsManager.fetchActions()
                         }
-                        .buttonStyle(.plain)
-                        
-                        // Close button
-                        Button(action: onClose) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.white.opacity(0.2))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Color.white.opacity(0.2))
+                            .clipShape(Circle())
                     }
-                    
-                    Spacer()
-                } else {
-                    // Right side: buttons on right
-                    Spacer()
-                    
-                    Group {
-                        // Collapse button
-                        Button(action: onExpand) {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.white.opacity(0.2))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        
-                        // Close button
-                        Button(action: onClose) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.white.opacity(0.2))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
+                    .buttonStyle(.plain)
+                }
+                
+                // 5. Close button - only on Settings tab
+                if selectedTab == .settings {
+                    Button(action: onClose) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Color.white.opacity(0.2))
+                            .clipShape(Circle())
                     }
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             
             // Tab view content
             tabContentView
@@ -789,13 +845,23 @@ struct HUDView: View {
         HStack(spacing: 0) {
             ForEach(ExpandedTab.allCases, id: \.self) { tab in
                 Button(action: { selectedTab = tab }) {
-                    VStack(spacing: 4) {
+                    ZStack {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 16))
-                        Text(tab.rawValue)
-                            .font(.caption)
+                            .font(.system(size: 18))
+                            .foregroundStyle(selectedTab == tab ? .white : .white.opacity(0.6))
+                        
+                        // Badge for notifications tab
+                        if tab == .notifications && notificationsManager.unreadNotificationsCount > 0 {
+                            Text("\(notificationsManager.unreadNotificationsCount)")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(Color.orange)
+                                .clipShape(Circle())
+                                .offset(x: 10, y: -8)
+                        }
                     }
-                    .foregroundStyle(selectedTab == tab ? .white : .white.opacity(0.6))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                 }
@@ -803,7 +869,7 @@ struct HUDView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .frame(height: 60)
+        .frame(height: 44)
         .background(Color.white.opacity(0.1))
         .cornerRadius(10)
     }
@@ -872,17 +938,6 @@ struct HUDView: View {
             // Timer control button
             Button(action: { timerModel.toggle() }) {
                 Image(systemName: timerModel.isRunning ? "pause.fill" : "play.fill")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
-                    .background(Color.white.opacity(0.2))
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-            
-            // Close button
-            Button(action: onClose) {
-                Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
                     .frame(width: 28, height: 28)

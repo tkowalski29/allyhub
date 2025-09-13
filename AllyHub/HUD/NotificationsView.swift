@@ -12,51 +12,8 @@ struct NotificationsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            notificationsHeader
             notificationsList
         }
-    }
-    
-    private var notificationsHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Notifications")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                
-                Text("\(notifications.count) total")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 8) {
-                if unreadNotificationsCount > 0 {
-                    Text("\(unreadNotificationsCount)")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 24, height: 24)
-                        .background(Color.orange)
-                        .clipShape(Circle())
-                }
-                
-                // Refresh button
-                Button(action: handleRefresh) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                        .animation(isRefreshing ? .linear(duration: 1.0).repeatForever(autoreverses: false) : .default, value: isRefreshing)
-                }
-                .buttonStyle(.plain)
-                .disabled(isRefreshing)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.black.opacity(0.3))
     }
     
     private var notificationsList: some View {

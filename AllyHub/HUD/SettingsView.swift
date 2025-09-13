@@ -328,6 +328,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             gradientThemeSection
             transparencySection
+            windowSizeSection
             compactBarModeSection
         }
     }
@@ -421,6 +422,40 @@ struct SettingsView: View {
                             Text(mode.rawValue)
                                 .foregroundStyle(.white)
                             Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+    
+    private var windowSizeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Window Size")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(GradientSettings.WindowSize.allCases) { size in
+                    Button(action: {
+                        gradientSettings.setWindowSize(size)
+                    }) {
+                        HStack {
+                            Image(systemName: gradientSettings.windowSize == size ? "largecircle.fill.circle" : "circle")
+                                .foregroundStyle(.white)
+                            Text(size.rawValue)
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Text("\(Int(size.width))px")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(4)
                         }
                         .padding(.vertical, 4)
                     }

@@ -12,8 +12,6 @@ struct ActionsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            actionsHeader
-            
             if actionsManager.showResponse {
                 actionResponseView
             }
@@ -25,36 +23,6 @@ struct ActionsView: View {
             }
         }
         .background(filePickerView)
-    }
-    
-    private var actionsHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Actions")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                
-                Text("\(actionsManager.actions.count) total")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-            
-            Spacer()
-            
-            // Refresh button
-            Button(action: {
-                actionsManager.fetchActions()
-            }) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.black.opacity(0.3))
     }
     
     private var actionResponseView: some View {

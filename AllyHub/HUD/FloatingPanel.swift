@@ -8,8 +8,12 @@ final class FloatingPanel: NSPanel {
     private let gradientSettings: GradientSettings
     private let communicationSettings: CommunicationSettings
     private var hostingView: NSHostingView<HUDView>?
-    private let compactSize = NSSize(width: 300, height: 44)  // Same width as expanded
-    private let expandedWidth: CGFloat = 300
+    private var compactSize: NSSize {
+        return NSSize(width: gradientSettings.windowSize.width, height: 44)
+    }
+    private var expandedWidth: CGFloat {
+        return gradientSettings.windowSize.width
+    }
     private var expandedSize: NSSize {
         let screenHeight = NSScreen.main?.frame.height ?? 800
         let menuBarHeight: CGFloat = 24  // Standard macOS menu bar height
@@ -29,7 +33,7 @@ final class FloatingPanel: NSPanel {
         
         // Initialize panel with compact size
         super.init(
-            contentRect: NSRect(origin: .zero, size: compactSize),
+            contentRect: NSRect(origin: .zero, size: NSSize(width: 300, height: 44)),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -307,5 +311,28 @@ extension FloatingPanel {
         if isExpanded {
             toggleExpansion(animated: animated)
         }
+    }
+    
+    func updateWindowSize() {
+        // Update frame size based on current state
+        let newSize = isExpanded ? expandedSize : compactSize
+        
+        // Update hosting view frame
+        hostingView?.frame = NSRect(origin: .zero, size: newSize)
+        
+        // Update panel frame while maintaining position
+        var newFrame = frame
+        newFrame.size = newSize
+        
+        // If on left side, keep left edge fixed
+        // If on right side, keep right edge fixed  
+        if isOnLeftSide {
+            // Keep left edge fixed
+        } else {
+            // Keep right edge fixed
+            newFrame.origin.x = frame.maxX - newSize.width
+        }
+        
+        setFrame(newFrame, display: true, animate: true)
     }
 }

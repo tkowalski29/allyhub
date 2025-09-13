@@ -193,6 +193,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSUserNotificationCenter.default.deliver(notification)
     }
     
+    func updateWindowSize() {
+        floatingPanel?.updateWindowSize()
+    }
+    
     private func cleanup() {
         // Clean up resources
         NotificationCenter.default.removeObserver(self)

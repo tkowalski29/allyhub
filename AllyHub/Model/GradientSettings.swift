@@ -1,10 +1,28 @@
 import SwiftUI
+import AppKit
 
 @MainActor
 final class GradientSettings: ObservableObject {
     @Published var selectedGradient: GradientType = .blue
     @Published var expandedOpacity: Double = 0.7  // Default 70%
     @Published var compactBarMode: CompactBarMode = .tasks
+    @Published var windowSize: WindowSize = .small
+    
+    enum WindowSize: String, CaseIterable, Identifiable {
+        case small = "Small"
+        case medium = "Medium"
+        case large = "Large"
+        
+        var id: String { rawValue }
+        
+        var width: CGFloat {
+            switch self {
+            case .small: return 300
+            case .medium: return 360
+            case .large: return 420
+            }
+        }
+    }
     
     enum CompactBarMode: String, CaseIterable, Identifiable {
         case tasks = "Tasks"
@@ -95,12 +113,18 @@ final class GradientSettings: ObservableObject {
            let barMode = CompactBarMode(rawValue: savedMode) {
             compactBarMode = barMode
         }
+        
+        if let savedWindowSize = UserDefaults.standard.string(forKey: "AllyHub.WindowSize"),
+           let windowSizeType = WindowSize(rawValue: savedWindowSize) {
+            windowSize = windowSizeType
+        }
     }
     
     func saveSettings() {
         UserDefaults.standard.set(selectedGradient.rawValue, forKey: "AllyHub.Gradient")
         UserDefaults.standard.set(expandedOpacity, forKey: "AllyHub.ExpandedOpacity")
         UserDefaults.standard.set(compactBarMode.rawValue, forKey: "AllyHub.CompactBarMode")
+        UserDefaults.standard.set(windowSize.rawValue, forKey: "AllyHub.WindowSize")
     }
     
     func setGradient(_ gradient: GradientType) {
@@ -116,5 +140,15 @@ final class GradientSettings: ObservableObject {
     func setCompactBarMode(_ mode: CompactBarMode) {
         compactBarMode = mode
         saveSettings()
+    }
+    
+    func setWindowSize(_ size: WindowSize) {
+        windowSize = size
+        saveSettings()
+        
+        // Update floating panel size
+        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
+            appDelegate.updateWindowSize()
+        }
     }
 }
