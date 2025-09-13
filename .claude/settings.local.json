@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(swiftc:*)"
     ],
     "deny": [],
     "ask": []

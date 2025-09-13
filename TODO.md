@@ -9,4 +9,4 @@
 - [x] wyswietlanie nowej notyfikacji 
 - [x] akcje (wysylanie akcji get / post)
 - [ ] skroty klawiszowe
-- [ ] sterowanie szero
+- [ ] sterowanie szerokoscia

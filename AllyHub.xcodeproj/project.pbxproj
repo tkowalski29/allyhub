@@ -24,6 +24,7 @@
 		AB8049B42E74B5C4006AAED5 /* NotificationsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B12E74B5C4006AAED5 /* NotificationsManager.swift */; };
 		AB8049B72E75301E006AAED5 /* ActionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B62E75301E006AAED5 /* ActionsView.swift */; };
 		AB8049B82E75301E006AAED5 /* ActionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B52E75301E006AAED5 /* ActionsManager.swift */; };
+		AB8049BA2E7537C1006AAED5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B92E7537C1006AAED5 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +59,7 @@
 		AB8049B22E74B5C4006AAED5 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		AB8049B52E75301E006AAED5 /* ActionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsManager.swift; sourceTree = "<group>"; };
 		AB8049B62E75301E006AAED5 /* ActionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsView.swift; sourceTree = "<group>"; };
+		AB8049B92E7537C1006AAED5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,6 +140,7 @@
 		101234567890ABCDEF000070 /* HUD */ = {
 			isa = PBXGroup;
 			children = (
+				AB8049B92E7537C1006AAED5 /* SettingsView.swift */,
 				AB8049B52E75301E006AAED5 /* ActionsManager.swift */,
 				AB8049B62E75301E006AAED5 /* ActionsView.swift */,
 				AB8049B12E74B5C4006AAED5 /* NotificationsManager.swift */,
@@ -268,6 +271,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB8049BA2E7537C1006AAED5 /* SettingsView.swift in Sources */,
 				501234567890ABCDEF000001 /* AllyHubApp.swift in Sources */,
 				501234567890ABCDEF000002 /* AppDelegate.swift in Sources */,
 				501234567890ABCDEF000003 /* StatusBarController.swift in Sources */,
