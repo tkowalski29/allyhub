@@ -53,7 +53,7 @@ final class ScreenRecorderManager: ObservableObject {
         Task {
             do {
                 // Request content from ScreenCaptureKit
-                let content = try await SCShareableContent.current
+                let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
                 
                 // Filter running applications
                 let filteredApps = content.applications.filter { app in
@@ -64,12 +64,16 @@ final class ScreenRecorderManager: ObservableObject {
                     }
                 }.sorted { $0.applicationName < $1.applicationName }
                 
-                availableApps = filteredApps
-                selectedApp = filteredApps.first
+                await MainActor.run {
+                    availableApps = filteredApps
+                    selectedApp = filteredApps.first
+                }
                 
-                // Get available displays
-                availableDisplays = content.displays
-                selectedDisplay = content.displays.first
+                await MainActor.run {
+                    // Get available displays
+                    availableDisplays = content.displays
+                    selectedDisplay = content.displays.first
+                }
                 
                 print("🖥️ Found \(filteredApps.count) applications and \(content.displays.count) displays")
                 
@@ -139,7 +143,7 @@ final class ScreenRecorderManager: ObservableObject {
     }
     
     private func createScreenRecorder(outputURL: URL) async throws -> ScreenRecorder {
-        let content = try await SCShareableContent.current
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         
         let filter: SCContentFilter
         
@@ -167,7 +171,6 @@ final class ScreenRecorderManager: ObservableObject {
         
         // Configure recording settings
         let configuration = SCStreamConfiguration()
-        configuration.videoCodecType = .h264
         configuration.scalesToFit = true
         configuration.width = 1920
         configuration.height = 1080
@@ -213,104 +216,188 @@ struct ScreenRecorderView: View {
         }
     }
     
+    // MARK: - View Components
+    
+    private var headerSection: some View {
+        VStack(spacing: 8) {
+            Text("Record Screen Activity")
+                .font(.headline)
+                .foregroundStyle(.white)
+            
+            Text(screenManager.isRecording ? "Recording in progress..." : "Select app and start recording")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.8))
+        }
+        .padding(.top, 20)
+        .padding(.bottom, 20)
+    }
+    
+    private var unavailableSection: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 48))
+                .foregroundStyle(.orange)
+            
+            Text("Screen recording requires macOS 12.3 or later")
+                .font(.body)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+            
+            if let error = screenManager.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding()
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 8) {
-                Text("Record Screen Activity")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                
-                Text(screenManager.isRecording ? "Recording in progress..." : "Select app and start recording")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-            .padding(.top, 20)
-            .padding(.bottom, 20)
+            headerSection
             
             if !screenManager.isAvailable {
-                // Not available message
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.orange)
-                    
-                    Text("Screen recording requires macOS 12.3 or later")
-                        .font(.body)
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                    
-                    if let error = screenManager.errorMessage {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
+                unavailableSection
+            } else {
+                recordingInterface
+            }
+        }
+        .frame(width: 450, height: 600)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .overlay(
+            showUploadProgress ? 
+                Color.black.opacity(0.3)
+                    .overlay(
+                        UploadProgressView(uploadService: uploadService) {
+                            showUploadProgress = false
+                        }
+                    )
+                    .transition(.opacity)
+                : nil
+        )
+    }
+    
+    private var recordingInterface: some View {
+        VStack(spacing: 20) {
+            // Recording mode selector (only show when not recording)
+            if !screenManager.isRecording {
+                recordingModeSelector
+            }
+            
+            recordingControls
+            
+            taskFormSection
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var recordingModeSelector: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Recording mode picker
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Recording Mode")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+                
+                Picker("Mode", selection: $screenManager.recordingMode) {
+                    ForEach(ScreenRecorderManager.RecordingMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName)
+                            .tag(mode)
                     }
                 }
-                .padding()
+                .pickerStyle(.segmented)
+                .colorScheme(.dark)
+            }
+            
+            // Application selector (for application mode)
+            if screenManager.recordingMode == .application {
+                applicationSelector
+            }
+            
+            // Display selector (for display mode)
+            if screenManager.recordingMode == .display {
+                displaySelector
+            }
+        }
+    }
+    
+    private var applicationSelector: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Select Application")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.7))
+            
+            if screenManager.availableApps.isEmpty {
+                Text("Loading applications...")
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding()
             } else {
-                // Recording interface
-                VStack(spacing: 20) {
-                    // Recording mode selector (only show when not recording)
-                    if !screenManager.isRecording {
-                        VStack(alignment: .leading, spacing: 12) {
-                            // Recording mode picker
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Recording Mode")
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.7))
-                                
-                                Picker("Mode", selection: $screenManager.recordingMode) {
-                                    ForEach(ScreenRecorderManager.RecordingMode.allCases, id: \.self) { mode in
-                                        Text(mode.displayName)
-                                            .tag(mode)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
-                                .colorScheme(.dark)
-                            }
-                            
-                            // Application selector (for application mode)
-                            if screenManager.recordingMode == .application {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Select Application")
-                                        .font(.caption)
-                                        .foregroundStyle(.white.opacity(0.7))
-                                    
-                                    if screenManager.availableApps.isEmpty {
-                                        Text("Loading applications...")
-                                            .font(.body)
-                                            .foregroundStyle(.white.opacity(0.7))
-                                            .padding()
-                                    } else {
-                                        Picker("Application", selection: $screenManager.selectedApp) {
-                                            ForEach(screenManager.availableApps, id: \.bundleIdentifier) { app in
-                                                Text(app.applicationName)
-                                                    .tag(app as SCRunningApplication?)
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(.white.opacity(0.1))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 8)
-                                                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                                                )
-                                        )
-                                    }
-                                }
-                            }
-                            
-                            // Display selector (for display mode)
-                            if screenManager.recordingMode == .display {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Select Display")
-                                        .font(.caption)
-                                        .foregroundStyle(.white.opacity(0.7))
+                Picker("Application", selection: $screenManager.selectedApp) {
+                    ForEach(screenManager.availableApps, id: \.bundleIdentifier) { app in
+                        Text(app.applicationName)
+                            .tag(app as SCRunningApplication?)
+                    }
+                }
+                .pickerStyle(.menu)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.white.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                        )
+                )
+            }
+        }
+    }
+    
+    private var displaySelector: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Select Display")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.7))
+            
+            if screenManager.availableDisplays.isEmpty {
+                Text("Loading displays...")
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding()
+            } else {
+                Picker("Display", selection: $screenManager.selectedDisplay) {
+                    ForEach(screenManager.availableDisplays, id: \.displayID) { display in
+                        Text("Display \(display.displayID) (\(Int(display.width))x\(Int(display.height)))")
+                            .tag(display as SCDisplay?)
+                    }
+                }
+                .pickerStyle(.menu)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.white.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                        )
+                )
+            }
+        }
+    }
+    
+    private var recordingControls: some View {
                                     
                                     if screenManager.availableDisplays.isEmpty {
                                         Text("Loading displays...")
