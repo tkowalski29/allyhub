@@ -22,6 +22,8 @@
 		501234567890ABCDEF000013 /* AppDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 401234567890ABCDEF000013 /* AppDelegateTests.swift */; };
 		AB8049B32E74B5C4006AAED5 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B22E74B5C4006AAED5 /* NotificationsView.swift */; };
 		AB8049B42E74B5C4006AAED5 /* NotificationsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B12E74B5C4006AAED5 /* NotificationsManager.swift */; };
+		AB8049B72E75301E006AAED5 /* ActionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B62E75301E006AAED5 /* ActionsView.swift */; };
+		AB8049B82E75301E006AAED5 /* ActionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049B52E75301E006AAED5 /* ActionsManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,6 +56,8 @@
 		401234567890ABCDEF000015 /* CommunicationSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunicationSettings.swift; sourceTree = "<group>"; };
 		AB8049B12E74B5C4006AAED5 /* NotificationsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsManager.swift; sourceTree = "<group>"; };
 		AB8049B22E74B5C4006AAED5 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		AB8049B52E75301E006AAED5 /* ActionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsManager.swift; sourceTree = "<group>"; };
+		AB8049B62E75301E006AAED5 /* ActionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,6 +138,8 @@
 		101234567890ABCDEF000070 /* HUD */ = {
 			isa = PBXGroup;
 			children = (
+				AB8049B52E75301E006AAED5 /* ActionsManager.swift */,
+				AB8049B62E75301E006AAED5 /* ActionsView.swift */,
 				AB8049B12E74B5C4006AAED5 /* NotificationsManager.swift */,
 				AB8049B22E74B5C4006AAED5 /* NotificationsView.swift */,
 				401234567890ABCDEF000004 /* FloatingPanel.swift */,
@@ -265,6 +271,8 @@
 				501234567890ABCDEF000001 /* AllyHubApp.swift in Sources */,
 				501234567890ABCDEF000002 /* AppDelegate.swift in Sources */,
 				501234567890ABCDEF000003 /* StatusBarController.swift in Sources */,
+				AB8049B72E75301E006AAED5 /* ActionsView.swift in Sources */,
+				AB8049B82E75301E006AAED5 /* ActionsManager.swift in Sources */,
 				501234567890ABCDEF000004 /* FloatingPanel.swift in Sources */,
 				501234567890ABCDEF000005 /* HUDView.swift in Sources */,
 				501234567890ABCDEF000006 /* HUDExpandedView.swift in Sources */,

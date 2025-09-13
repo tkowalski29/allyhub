@@ -8,7 +8,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ### 1. Tasks Fetch URL
 **Pole**: `tasksFetchURL`
 **Opis**: URL do pobierania listy zadań
-
 **Method**: POST
 **Response Format**: JSON
 ```json
@@ -37,7 +36,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ### 2. Task Update URL
 **Pole**: `taskUpdateURL`
 **Opis**: URL do wysyłania aktualizacji statusu zadania
-
 **Method**: POST
 **Request Format**: JSON
 ```json
@@ -62,12 +60,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ### 3. Chat History URL
 **Pole**: `chatHistoryURL`
 **Opis**: URL do pobierania historii konwersacji
-
 **Method**: POST
-**Query Parameters**: 
-- `limit` (optional): ilość wiadomości do pobrania (default: 50)
-- `offset` (optional): offset dla paginacji (default: 0)
-- `userId` (required): identyfikator użytkownika
 
 **Response Format**: JSON
 ```json
@@ -92,7 +85,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ### 4. Chat Stream URL
 **Pole**: `chatStreamURL`
 **Opis**: URL dla streamowanej komunikacji z chatem (WebSocket lub Server-Sent Events)
-
 **Protocol**: WebSocket lub HTTP POST
 **Request Format** (POST): JSON
 ```json
@@ -119,13 +111,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ### 5. Notifications Fetch URL
 **Pole**: `notificationsFetchURL`
 **Opis**: URL do pobierania powiadomień
-
 **Method**: POST
-**Query Parameters**:
-- `userId` (required): identyfikator użytkownika
-- `unreadOnly` (optional): czy pobierać tylko nieprzeczytane (default: false)
-- `limit` (optional): ilość powiadomień (default: 20)
-
 **Response Format**: JSON
 ```json
 {
@@ -149,8 +135,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ### 6. Notification Status URL
 **Pole**: `notificationStatusURL`
 **Opis**: URL do aktualizacji statusu powiadomienia (oznaczenie jako przeczytane/usunięte)
-
-**Method**: POST/PATCH
+**Method**: POST
 **Request Format**: JSON
 ```json
 {
@@ -165,5 +150,46 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 {
   "success": boolean,
   "message": "string"
+}
+```
+
+---
+
+### 7. Actions Fetch URL
+**Pole**: `actionsFetchURL`
+**Opis**: URL do pobierania akcji do wykonania
+**Method**: POST
+
+**Response Format**: JSON
+```json
+{
+  "collection": [
+    {
+      "id": "string",
+      "url": "string",
+      "method": "GET|POST",
+      "title": "string",
+      "message": "string",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "placeholder": "string"
+        },
+        "file": {
+          "type": "file",
+          "placeholder": "string"
+        },
+        "class": {
+          "type": "select",
+          "placeholder": "string",
+          "options": {
+            "string": "string",
+            "string": "string",
+          }
+        }
+      }
+    }
+  ],
+  "count": number
 }
 ```

@@ -18,6 +18,7 @@ struct HUDView: View {
     @State private var communicationAccordionExpanded = false
     @State private var chatAccordionExpanded = false
     @State private var notificationsAccordionExpanded = false
+    @State private var actionsAccordionExpanded = false
     @State private var chatTabChatAccordionExpanded = true
     @State private var conversationsAccordionExpanded = false
     @State private var chatInputText = ""
@@ -33,6 +34,7 @@ struct HUDView: View {
     ]
     @State private var currentConversationId: UUID?
     @StateObject private var notificationsManager: NotificationsManager
+    @StateObject private var actionsManager: ActionsManager
     @State private var isRefreshing = false
     @State private var notificationsRefreshTimer: Timer?
     
@@ -75,12 +77,14 @@ struct HUDView: View {
         self.onExpand = onExpand
         self.onClose = onClose
         self._notificationsManager = StateObject(wrappedValue: NotificationsManager(communicationSettings: communicationSettings))
+        self._actionsManager = StateObject(wrappedValue: ActionsManager(communicationSettings: communicationSettings))
     }
     
     enum ExpandedTab: String, CaseIterable {
         case chat = "Chat"
         case tasks = "Tasks"
         case notifications = "Notifications"
+        case actions = "Actions"
         case settings = "Settings"
         
         var icon: String {
@@ -88,6 +92,7 @@ struct HUDView: View {
             case .chat: return "message"
             case .tasks: return "checklist"
             case .notifications: return "bell"
+            case .actions: return "bolt"
             case .settings: return "gearshape"
             }
         }
@@ -118,6 +123,8 @@ struct HUDView: View {
             startNotificationRefreshTimer()
             // Fetch notifications immediately when view appears
             refreshNotifications()
+            // Fetch actions when view appears
+            actionsManager.fetchActions()
         }
         .onDisappear {
             stopNotificationRefreshTimer()
@@ -300,6 +307,8 @@ struct HUDView: View {
                 tasksTabView
             case .notifications:
                 notificationsTabView
+            case .actions:
+                actionsTabView
             case .settings:
                 settingsTabView
             }
@@ -718,6 +727,46 @@ struct HUDView: View {
         }
     }
     
+    private var actionsTabView: some View {
+        VStack(spacing: 0) {
+            if actionsManager.actions.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: communicationSettings.actionsFetchURL.isEmpty ? "bolt.slash" : "bolt")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.white.opacity(0.4))
+                    
+                    VStack(spacing: 4) {
+                        Text(communicationSettings.actionsFetchURL.isEmpty ? "No actions configured" : "No actions")
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white.opacity(0.8))
+                        
+                        Text(communicationSettings.actionsFetchURL.isEmpty ? "Configure actions URL in Settings" : "Pull to refresh or wait for updates")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    if !communicationSettings.actionsFetchURL.isEmpty {
+                        Button("Refresh now") {
+                            actionsManager.fetchActions()
+                        }
+                        .buttonStyle(.plain)
+                        .font(.caption)
+                        .foregroundStyle(.blue.opacity(0.8))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 40)
+            } else {
+                ActionsView(
+                    actionsManager: actionsManager
+                )
+            }
+        }
+    }
+    
     
     
     
@@ -727,6 +776,7 @@ struct HUDView: View {
             VStack(alignment: .leading, spacing: 12) {
                 chatAccordion
                 notificationsAccordion
+                actionsAccordion
                 appearanceAccordion
                 communicationAccordion
             }
@@ -936,6 +986,57 @@ struct HUDView: View {
         }
     }
     
+    private var actionsAccordion: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    actionsAccordionExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "bolt")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+                    
+                    Text("Actions")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    
+                    Spacer()
+                    
+                    Image(systemName: actionsAccordionExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            
+            if actionsAccordionExpanded {
+                actionsSettingsView
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .transition(.slide.combined(with: .opacity))
+            }
+        }
+    }
+    
+    private var actionsSettingsView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Actions Fetch URL
+            chatUrlField(
+                title: "Actions Fetch URL",
+                placeholder: "Enter URL to fetch actions",
+                value: $communicationSettings.actionsFetchURL
+            )
+        }
+    }
+    
     private var appearanceAccordion: some View {
         VStack(spacing: 0) {
             Button(action: {
@@ -1046,7 +1147,7 @@ struct HUDView: View {
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.7))
                     Spacer()
-                    Text("100%")
+                    Text("95%")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.7))
                 }
@@ -1134,18 +1235,6 @@ struct HUDView: View {
                 title: "Task Update URL",
                 placeholder: "Enter URL to update task status",
                 value: $communicationSettings.taskUpdateURL
-            )
-            
-            urlConfigurationField(
-                title: "Chat History URL",
-                placeholder: "Enter URL to fetch chat history",
-                value: $communicationSettings.chatHistoryURL
-            )
-            
-            urlConfigurationField(
-                title: "Chat Stream URL",
-                placeholder: "Enter URL for chat streaming",
-                value: $communicationSettings.chatStreamURL
             )
         }
     }

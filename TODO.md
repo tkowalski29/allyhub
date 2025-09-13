@@ -7,5 +7,6 @@
 - [ ] dyktowanie taska (api + wisper)
 - [x] notyfikacje
 - [x] wyswietlanie nowej notyfikacji 
+- [x] akcje (wysylanie akcji get / post)
 - [ ] skroty klawiszowe
-- [ ] sterowanie szerokoscia
+- [ ] sterowanie szero
