@@ -165,15 +165,10 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Request Format**: JSON/FormData
 ```json
 {
+  "type": "form|microfon|screen",
   "title": "string",
   "description": "string", 
-  "priority": "high|medium|low",
-  "due_date": "ISO8601 timestamp", // opcjonalne
-  "creation_type": "form|microphone|screen",
-  "audio_url": "string", // opcjonalne - ścieżka do pliku audio
-  "transcription": "string", // opcjonalne - transkrypcja audio/screen
-  "tags": ["string"], // opcjonalne
-  "user_id": "string" // opcjonalne
+  "due_date": "ISO8601 timestamp"
 }
 ```
 
@@ -200,9 +195,11 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 ```json
 {
   "success": boolean,
-  "task_id": "string",
   "message": "string",
-  "created_at": "ISO8601 timestamp"
+  "data": {
+    "id": "string",
+    "url": "string"
+  }
 }
 ```
 

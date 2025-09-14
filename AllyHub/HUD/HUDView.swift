@@ -18,6 +18,7 @@ struct HUDView: View {
     @State private var isRightSectionHovering = false
     @State private var isChatInputFocused = false
     @State private var selectedTab: ExpandedTab = .tasks
+    @State private var showingTaskCreationOptions = false
     @State private var chatTabChatAccordionExpanded = true
     @State private var conversationsAccordionExpanded = false
     @State private var chatAccordionExpanded = true
@@ -439,14 +440,15 @@ struct HUDView: View {
                 // 4. Add Task button - for Tasks tab only
                 if selectedTab == .tasks {
                     Button(action: {
-                        // TODO: Add new task functionality
-                        print("Add new task button pressed")
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingTaskCreationOptions.toggle()
+                        }
                     }) {
-                        Image(systemName: "plus")
+                        Image(systemName: showingTaskCreationOptions ? "xmark" : "plus")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 28, height: 28)
-                            .background(Color.blue.opacity(0.7))
+                            .background((showingTaskCreationOptions ? Color.red : Color.blue).opacity(0.7))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -802,7 +804,7 @@ struct HUDView: View {
     
     // MARK: - Tasks Tab View (broken into smaller components)
     private var tasksTabView: some View {
-        TasksView(tasksManager: tasksManager, tasksModel: tasksModel, timerModel: timerModel, actionsManager: actionsManager, communicationSettings: communicationSettings, taskCreationSettings: taskCreationSettings)
+        TasksView(tasksManager: tasksManager, tasksModel: tasksModel, timerModel: timerModel, actionsManager: actionsManager, communicationSettings: communicationSettings, taskCreationSettings: taskCreationSettings, showingTaskCreationOptions: $showingTaskCreationOptions)
     }
     
     private var notificationsTabView: some View {
