@@ -436,7 +436,6 @@ struct AudioRecorderView: View {
         let metadata = AudioUploadMetadata(
             title: taskTitle.trimmingCharacters(in: .whitespacesAndNewlines),
             description: taskDescription.trimmingCharacters(in: .whitespacesAndNewlines),
-            priority: .medium,
             transcription: audioManager.transcription.isEmpty ? nil : audioManager.transcription,
             duration: audioManager.recordingTime
         )
@@ -464,7 +463,7 @@ struct AudioRecorderView: View {
                     createdAt: Date(),
                     creationType: .microphone,
                     audioUrl: audioURL.path,
-                    transcription: metadata.transcription
+                    transcription: metadata.transcription?.content
                 )
                 
                 onTaskCreated(task)

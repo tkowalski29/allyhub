@@ -21,7 +21,7 @@ final class FileUploadService: ObservableObject {
         to endpoint: String,
         withMetadata metadata: AudioUploadMetadata
     ) async -> UploadResult {
-        return await uploadFile(
+        return await uploadFileWithJSONMetadata(
             from: fileURL,
             to: endpoint,
             metadata: metadata,
@@ -36,7 +36,7 @@ final class FileUploadService: ObservableObject {
         to endpoint: String,
         withMetadata metadata: ScreenUploadMetadata
     ) async -> UploadResult {
-        return await uploadFile(
+        return await uploadFileWithJSONMetadata(
             from: fileURL,
             to: endpoint,
             metadata: metadata,
@@ -54,6 +54,56 @@ final class FileUploadService: ObservableObject {
     }
     
     // MARK: - Private Methods
+    
+    /// Upload file with JSON metadata in body (not as form field)
+    private func uploadFileWithJSONMetadata<T: UploadMetadata>(
+        from fileURL: URL,
+        to endpoint: String,
+        metadata: T,
+        fieldName: String,
+        contentType: String
+    ) async -> UploadResult {
+        guard let url = URL(string: endpoint) else {
+            return UploadResult(success: false, error: "Invalid endpoint URL")
+        }
+        
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return UploadResult(success: false, error: "File not found at path: \(fileURL.path)")
+        }
+        
+        isUploading = true
+        uploadProgress = 0.0
+        errorMessage = nil
+        
+        do {
+            let fileData = try Data(contentsOf: fileURL)
+            let multipartData = try createMultipartDataWithJSONBody(
+                fileData: fileData,
+                fileName: fileURL.lastPathComponent,
+                fieldName: fieldName,
+                contentType: contentType,
+                metadata: metadata
+            )
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+            request.setValue("\(multipartData.count)", forHTTPHeaderField: "Content-Length")
+            
+            let result = try await performUpload(request: request, data: multipartData)
+            
+            isUploading = false
+            uploadProgress = 1.0
+            
+            return result
+            
+        } catch {
+            isUploading = false
+            errorMessage = "Upload failed: \(error.localizedDescription)"
+            
+            return UploadResult(success: false, error: error.localizedDescription)
+        }
+    }
     
     private func uploadFile<T: UploadMetadata>(
         from fileURL: URL,
@@ -105,6 +155,36 @@ final class FileUploadService: ObservableObject {
     }
     
     private let boundary = "AllyHub-Upload-Boundary-\(UUID().uuidString)"
+    
+    private func createMultipartDataWithJSONBody<T: UploadMetadata>(
+        fileData: Data,
+        fileName: String,
+        fieldName: String,
+        contentType: String,
+        metadata: T
+    ) throws -> Data {
+        var data = Data()
+        
+        // Add JSON data as 'task_data' form field with JSON content type
+        let metadataJSON = try JSONEncoder().encode(metadata)
+        data.append("--\(boundary)\r\n".data(using: .utf8)!)
+        data.append("Content-Disposition: form-data; name=\"task_data\"\r\n".data(using: .utf8)!)
+        data.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
+        data.append(metadataJSON)
+        data.append("\r\n".data(using: .utf8)!)
+        
+        // Add file data
+        data.append("--\(boundary)\r\n".data(using: .utf8)!)
+        data.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        data.append("Content-Type: \(contentType)\r\n\r\n".data(using: .utf8)!)
+        data.append(fileData)
+        data.append("\r\n".data(using: .utf8)!)
+        
+        // End boundary
+        data.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        return data
+    }
     
     private func createMultipartData<T: UploadMetadata>(
         fileData: Data,
@@ -194,80 +274,59 @@ struct UploadResult {
 // MARK: - Upload Metadata Protocols
 
 protocol UploadMetadata: Codable {
+    var type: String { get }
     var title: String { get }
     var description: String { get }
-    var priority: String { get }
-    var creationType: String { get }
-    var userId: String? { get }
-    var tags: [String]? { get }
+    var due_date: String? { get }
+}
+
+struct TranscriptionData: Codable {
+    let content: String
+    let duration: Double
 }
 
 struct AudioUploadMetadata: UploadMetadata {
+    let type: String
     let title: String
     let description: String
-    let priority: String
-    let creationType: String
-    let transcription: String?
-    let duration: TimeInterval?
-    let userId: String?
-    let tags: [String]?
-    let dueDate: String? // ISO8601 timestamp
+    let due_date: String? // ISO8601 timestamp
+    let transcription: TranscriptionData?
     
     init(
         title: String,
         description: String,
-        priority: TaskPriority,
         transcription: String? = nil,
         duration: TimeInterval? = nil,
-        userId: String? = nil,
-        tags: [String]? = nil,
         dueDate: Date? = nil
     ) {
+        self.type = "microphone"
         self.title = title
         self.description = description
-        self.priority = priority.rawValue
-        self.creationType = "microphone"
-        self.transcription = transcription
-        self.duration = duration
-        self.userId = userId
-        self.tags = tags
-        self.dueDate = dueDate?.ISO8601Format()
+        self.due_date = dueDate?.ISO8601Format()
+        
+        if let transcriptionText = transcription, let duration = duration {
+            self.transcription = TranscriptionData(content: transcriptionText, duration: duration)
+        } else {
+            self.transcription = nil
+        }
     }
 }
 
 struct ScreenUploadMetadata: UploadMetadata {
+    let type: String
     let title: String
     let description: String
-    let priority: String
-    let creationType: String
-    let appName: String?
-    let recordingMode: String?
-    let duration: TimeInterval?
-    let userId: String?
-    let tags: [String]?
-    let dueDate: String? // ISO8601 timestamp
+    let due_date: String? // ISO8601 timestamp
     
     init(
         title: String,
         description: String,
-        priority: TaskPriority,
-        appName: String? = nil,
-        recordingMode: String? = nil,
-        duration: TimeInterval? = nil,
-        userId: String? = nil,
-        tags: [String]? = nil,
         dueDate: Date? = nil
     ) {
+        self.type = "screen"
         self.title = title
         self.description = description
-        self.priority = priority.rawValue
-        self.creationType = "screen"
-        self.appName = appName
-        self.recordingMode = recordingMode
-        self.duration = duration
-        self.userId = userId
-        self.tags = tags
-        self.dueDate = dueDate?.ISO8601Format()
+        self.due_date = dueDate?.ISO8601Format()
     }
 }
 

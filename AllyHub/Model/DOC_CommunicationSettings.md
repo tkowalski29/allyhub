@@ -165,31 +165,16 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 **Request Format**: JSON/FormData
 ```json
 {
-  "type": "form|microfon|screen",
+  "type": "form|microphone|screen",
   "title": "string",
   "description": "string", 
-  "due_date": "ISO8601 timestamp"
+  "due_date": "ISO8601 timestamp",
+  "transcription": {
+    "content": "string",
+    "duration": number
+  }
 }
 ```
-
-**Szczegóły dla różnych typów tworzenia:**
-
-#### 7.1 Task Creation Type: "form"
-- Standardowe tworzenie zadania przez formularz
-- Wszystkie pola wprowadzone manualnie
-- `audio_url` i `transcription` = null
-
-#### 7.2 Task Creation Type: "microphone"  
-- Zadanie utworzone przez nagranie audio
-- `audio_url` zawiera ścieżkę do pliku nagrania (.m4a)
-- `transcription` zawiera tekst z lokalnej transkrypcji WhisperKit
-- `title` i `description` mogą być wypełnione przez użytkownika po nagraniu
-
-#### 7.3 Task Creation Type: "screen"
-- Zadanie utworzone przez nagranie ekranu
-- `audio_url` zawiera ścieżkę do pliku screen recording (.mov)
-- `transcription` zawiera informacje o nagranej aplikacji (np. "Screen recording: Google Chrome")
-- `title` i `description` wypełniane przez użytkownika po nagraniu
 
 **Response Format**: JSON
 ```json

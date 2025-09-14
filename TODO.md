@@ -5,8 +5,8 @@
 - [x] taski akcje
 - [x] time tracker
 - [x] dodawanie taska (api)
-- [x] dyktowanie taska (api + wisper)
-- [x] nagrywanie rozmowy np google meet -> task
+- [ ] dyktowanie taska (api + wisper)
+- [ ] nagrywanie rozmowy np google meet -> task
 - [x] notyfikacje
 - [x] wyswietlanie nowej notyfikacji 
 - [x] akcje (wysylanie akcji get / post)

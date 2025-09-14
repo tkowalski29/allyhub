@@ -508,11 +508,7 @@ struct ScreenRecorderView: View {
         let appName = screenManager.selectedApp?.applicationName ?? "Screen"
         let metadata = ScreenUploadMetadata(
             title: taskTitle.trimmingCharacters(in: .whitespacesAndNewlines),
-            description: taskDescription.trimmingCharacters(in: .whitespacesAndNewlines),
-            priority: .medium,
-            appName: appName,
-            recordingMode: screenManager.recordingMode.rawValue,
-            duration: screenManager.recordingTime
+            description: taskDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         
         // Try to upload if API is configured
@@ -543,16 +539,17 @@ struct ScreenRecorderView: View {
     }
     
     private func createLocalTask(metadata: ScreenUploadMetadata, audioUrl: String) {
+        let appName = screenManager.selectedApp?.applicationName ?? "Screen"
         let task = TaskItem(
             title: metadata.title,
             description: metadata.description,
             status: .todo,
-            priority: TaskPriority(rawValue: metadata.priority) ?? .medium,
+            priority: .medium,
             isCompleted: false,
             createdAt: Date(),
             creationType: .screen,
             audioUrl: audioUrl,
-            transcription: "Screen recording: \(metadata.appName ?? "Unknown app")"
+            transcription: "Screen recording: \(appName)"
         )
         
         onTaskCreated(task)
