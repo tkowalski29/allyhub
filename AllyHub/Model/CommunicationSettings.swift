@@ -5,11 +5,13 @@ final class CommunicationSettings: ObservableObject {
     @Published var tasksFetchURL: String = ""
     @Published var taskUpdateURL: String = ""
     @Published var taskCreateURL: String = ""
-    @Published var chatHistoryURL: String = ""
+    @Published var chatHistoryURL: String = "" // Collection endpoint - lista konwersacji
     @Published var chatStreamURL: String = ""
     @Published var chatEnableStream: Bool = false
-    @Published var chatMessageURL: String = ""
+    @Published var chatMessageURL: String = "" // Message endpoint - wysyłanie wiadomości
     @Published var chatCollectionURL: String = ""
+    @Published var chatGetConversationURL: String = "" // Get endpoint - wiadomości w konwersacji
+    @Published var chatCreateConversationURL: String = "" // Create endpoint - nowa konwersacja
     @Published var notificationsFetchURL: String = ""
     @Published var notificationStatusURL: String = ""
     @Published var notificationsRefreshInterval: Int = 10 // minutes
@@ -28,6 +30,8 @@ final class CommunicationSettings: ObservableObject {
         chatEnableStream = UserDefaults.standard.bool(forKey: "AllyHub.ChatEnableStream")
         chatMessageURL = UserDefaults.standard.string(forKey: "AllyHub.ChatMessageURL") ?? ""
         chatCollectionURL = UserDefaults.standard.string(forKey: "AllyHub.ChatCollectionURL") ?? ""
+        chatGetConversationURL = UserDefaults.standard.string(forKey: "AllyHub.ChatGetConversationURL") ?? ""
+        chatCreateConversationURL = UserDefaults.standard.string(forKey: "AllyHub.ChatCreateConversationURL") ?? ""
         notificationsFetchURL = UserDefaults.standard.string(forKey: "AllyHub.NotificationsFetchURL") ?? ""
         notificationStatusURL = UserDefaults.standard.string(forKey: "AllyHub.NotificationStatusURL") ?? ""
         notificationsRefreshInterval = UserDefaults.standard.object(forKey: "AllyHub.NotificationsRefreshInterval") as? Int ?? 10
@@ -43,6 +47,8 @@ final class CommunicationSettings: ObservableObject {
         UserDefaults.standard.set(chatEnableStream, forKey: "AllyHub.ChatEnableStream")
         UserDefaults.standard.set(chatMessageURL, forKey: "AllyHub.ChatMessageURL")
         UserDefaults.standard.set(chatCollectionURL, forKey: "AllyHub.ChatCollectionURL")
+        UserDefaults.standard.set(chatGetConversationURL, forKey: "AllyHub.ChatGetConversationURL")
+        UserDefaults.standard.set(chatCreateConversationURL, forKey: "AllyHub.ChatCreateConversationURL")
         UserDefaults.standard.set(notificationsFetchURL, forKey: "AllyHub.NotificationsFetchURL")
         UserDefaults.standard.set(notificationStatusURL, forKey: "AllyHub.NotificationStatusURL")
         UserDefaults.standard.set(notificationsRefreshInterval, forKey: "AllyHub.NotificationsRefreshInterval")
@@ -81,6 +87,21 @@ final class CommunicationSettings: ObservableObject {
     
     func updateActionsFetchURL(_ url: String) {
         actionsFetchURL = url
+        saveSettings()
+    }
+    
+    func updateChatGetConversationURL(_ url: String) {
+        chatGetConversationURL = url
+        saveSettings()
+    }
+    
+    func updateChatCreateConversationURL(_ url: String) {
+        chatCreateConversationURL = url
+        saveSettings()
+    }
+    
+    func updateChatMessageURL(_ url: String) {
+        chatMessageURL = url
         saveSettings()
     }
 }

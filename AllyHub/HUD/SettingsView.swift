@@ -339,11 +339,25 @@ struct SettingsView: View {
                 value: $communicationSettings.chatMessageURL
             )
             
-            // URL Collection field
+            // URL Collection field (Lista konwersacji)
             chatUrlField(
                 title: "Collection URL", 
                 placeholder: "Enter URL for chat collections",
-                value: $communicationSettings.chatCollectionURL
+                value: $communicationSettings.chatHistoryURL
+            )
+            
+            // URL Get Conversation field (Wiadomości w konwersacji)
+            chatUrlField(
+                title: "Get Conversation URL",
+                placeholder: "Enter URL to get conversation messages",
+                value: $communicationSettings.chatGetConversationURL
+            )
+            
+            // URL Create Conversation field (Nowa konwersacja)
+            chatUrlField(
+                title: "Create Conversation URL",
+                placeholder: "Enter URL to create new conversation",
+                value: $communicationSettings.chatCreateConversationURL
             )
         }
     }

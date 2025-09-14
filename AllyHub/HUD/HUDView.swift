@@ -20,30 +20,21 @@ struct HUDView: View {
     @State private var isChatInputFocused = false
     @State private var selectedTab: ExpandedTab = .tasks
     @State private var showingTaskCreationOptions = false
-    @State private var chatTabChatAccordionExpanded = true
-    @State private var conversationsAccordionExpanded = false
-    @State private var chatAccordionExpanded = true
-    @State private var chatInputText = ""
-    @State private var chatMessages: [ChatMessage] = [
-        ChatMessage(content: "Hello! How can I help you today?", isUser: false),
-        ChatMessage(content: "Hi! I need help with my tasks.", isUser: true),
-        ChatMessage(content: "I'd be happy to help you manage your tasks. What would you like to know?", isUser: false)
-    ]
-    @State private var conversations: [Conversation] = [
-        Conversation(title: "Task Management Help", lastMessage: "I'd be happy to help you manage your tasks. What would you like to know?"),
-        Conversation(title: "Project Planning", lastMessage: "Let's plan your next project step by step."),
-        Conversation(title: "Daily Standup", lastMessage: "What are you working on today?")
-    ]
-    @State private var currentConversationId: UUID?
+    @State private var showingChatCreationOptions = false
+    @StateObject private var chatViewModel = ChatViewModel()
     @StateObject private var notificationsManager: NotificationsManager
     @StateObject private var tasksManager: TasksManager
     @StateObject private var actionsManager: ActionsManager
     @AppStorage("activeTaskId") private var activeTaskId: String?
+    @AppStorage("activeConversationId") private var activeConversationId: String?
     @State private var isRefreshing = false
     @State private var isRefreshButtonAnimating = false
     @State private var notificationsRefreshTimer: Timer?
     @State private var showingQuickAudioRecorder = false
     @State private var showingQuickScreenRecorder = false
+    @State private var chatMessage: String = ""
+    @State private var isSendingChatMessage = false
+    @State private var lastChatResponse: String?
     
     // Inline recording state
     @State private var showingInlineAudioRecorder = false
@@ -59,25 +50,6 @@ struct HUDView: View {
     @State private var inlineScreenTaskSubmitted = false
     @State private var inlineScreenManager: ScreenRecorderManager?
     
-    struct ChatMessage: Identifiable, Equatable {
-        let id = UUID()
-        let content: String
-        let isUser: Bool
-        let timestamp = Date()
-    }
-    
-    struct Conversation: Identifiable, Equatable {
-        let id: UUID
-        var title: String
-        var lastMessage: String
-        var lastUpdated = Date()
-        
-        init(title: String, lastMessage: String) {
-            self.id = UUID()
-            self.title = title
-            self.lastMessage = lastMessage
-        }
-    }
     
     // MARK: - Initializer
     
@@ -128,37 +100,51 @@ struct HUDView: View {
     
     // MARK: - Body
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                // Background with gradient or solid
-                backgroundView
+        ZStack(alignment: .topLeading) {
+            // Main panel content with all inline interfaces
+            VStack(spacing: 0) {
+                ZStack {
+                    // Background with gradient or solid
+                    backgroundView
+                    
+                    // Main content
+                    if isExpanded {
+                        expandedView
+                    } else {
+                        compactView
+                    }
+                }
+                .frame(width: gradientSettings.windowSize.width, height: isExpanded ? nil : 44)
                 
-                // Main content
-                if isExpanded {
-                    expandedView
-                } else {
-                    compactView
-                }
-            }
-            .frame(width: gradientSettings.windowSize.width, height: isExpanded ? nil : 44)
-            
-            // Inline recording interface (shown below compact view)
-            if showingInlineAudioRecorder && !isExpanded {
-                inlineRecordingView
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-            
-            // Inline screen recording interface (shown below compact view)
-            if showingInlineScreenRecorder && !isExpanded {
-                if #available(macOS 12.3, *) {
-                    inlineScreenRecordingView
+                // Inline recording interface (shown below compact view)
+                if showingInlineAudioRecorder && !isExpanded {
+                    inlineRecordingView
                         .transition(.move(edge: .top).combined(with: .opacity))
-                } else {
-                    // Fallback for older macOS
-                    Text("Screen recording requires macOS 12.3+")
-                        .foregroundStyle(.orange)
-                        .padding()
                 }
+                
+                // Inline screen recording interface (shown below compact view)
+                if showingInlineScreenRecorder && !isExpanded {
+                    if #available(macOS 12.3, *) {
+                        inlineScreenRecordingView
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    } else {
+                        // Fallback for older macOS
+                        Text("Screen recording requires macOS 12.3+")
+                            .foregroundStyle(.orange)
+                            .padding()
+                    }
+                }
+            }
+            
+            // Chat response box positioned absolutely below the panel
+            if !isExpanded && gradientSettings.compactBarMode == .chat && lastChatResponse != nil {
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: 44) // Height of compact view
+                    chatResponseBox
+                        .frame(width: gradientSettings.windowSize.width)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .onAppear {
@@ -348,22 +334,47 @@ struct HUDView: View {
                         }
                     }
                 } else {
-                    // Show chat input when in chat mode - full width of left section
-                    TextField("Type a message...", text: $chatInputText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14))
-                        .foregroundColor(.white)
-                        .onTapGesture {
-                            isChatInputFocused = true
-                            isRightSectionHovering = false
-                        }
-                        .onSubmit {
-                            if !chatInputText.isEmpty {
-                                chatMessages.append(ChatMessage(content: chatInputText, isUser: true))
-                                chatInputText = ""
+                    // Chat mode - show conversation status and messages
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let activeConversationId = activeConversationId {
+                            if isSendingChatMessage {
+                                Text("Sending...")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.8))
+                            } else {
+                                ZStack(alignment: .leading) {
+                                    if chatMessage.isEmpty {
+                                        Text("Type message...")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.white.opacity(0.9))
+                                            .allowsHitTesting(false)
+                                    }
+                                    
+                                    TextField("", text: $chatMessage)
+                                        .textFieldStyle(.plain)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white)
+                                        .background(Color.clear)
+                                        .onSubmit {
+                                            sendChatMessage()
+                                        }
+                                }
                             }
-                            isChatInputFocused = false
+                        } else {
+                            Text("No active conversation")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.7))
+                            
+                            TextField("Select conversation first", text: $chatMessage)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.6))
+                                .disabled(true)
+                                .onSubmit {
+                                    showNoConversationError()
+                                }
                         }
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -388,22 +399,24 @@ struct HUDView: View {
                         }
                         .buttonStyle(.plain)
                         
-                        // Start/Stop Timer button
-                        Button(action: {
-                            if timerModel.isRunning {
-                                stopTimer()
-                            } else {
-                                startTimer()
+                        // Start/Stop Timer button (hide in chat mode)
+                        if gradientSettings.compactBarMode == .tasks {
+                            Button(action: {
+                                if timerModel.isRunning {
+                                    stopTimer()
+                                } else {
+                                    startTimer()
+                                }
+                            }) {
+                                Image(systemName: timerModel.isRunning ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.white.opacity(0.2))
+                                    .clipShape(Circle())
                             }
-                        }) {
-                            Image(systemName: timerModel.isRunning ? "pause.fill" : "play.fill")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.white.opacity(0.2))
-                                .clipShape(Circle())
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                         
                         // Quick task creation button (configurable action)
                         Button(action: {
@@ -502,14 +515,31 @@ struct HUDView: View {
                     .buttonStyle(.plain)
                 }
                 
-                // 5. Refresh button - for Notifications, Actions, and Tasks tabs
-                if selectedTab == .notifications || selectedTab == .actions || selectedTab == .tasks {
+                // 4. Add Conversation button - for Chat tab only
+                if selectedTab == .chat {
+                    Button(action: {
+                        chatViewModel.triggerNewConversation()
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Color.blue.opacity(0.7))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // 5. Refresh button - for Chat, Notifications, Actions, and Tasks tabs
+                if selectedTab == .chat || selectedTab == .notifications || selectedTab == .actions || selectedTab == .tasks {
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.6)) {
                             isRefreshButtonAnimating = true
                         }
                         
-                        if selectedTab == .notifications {
+                        if selectedTab == .chat {
+                            chatViewModel.triggerRefresh()
+                        } else if selectedTab == .notifications {
                             notificationsManager.fetchNotifications()
                         } else if selectedTab == .actions {
                             actionsManager.fetchActions()
@@ -591,263 +621,7 @@ struct HUDView: View {
     }
     
     private var chatTabView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                // Chat Accordion
-                VStack(spacing: 0) {
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            chatAccordionExpanded.toggle()
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "message")
-                                .font(.system(size: 16))
-                                .foregroundStyle(.white)
-                            
-                            Text("Chat")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                            
-                            Spacer()
-                            
-                            Image(systemName: chatAccordionExpanded ? "chevron.down" : "chevron.right")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    if chatAccordionExpanded {
-                        chatInterface
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 12)
-                            .background(Color.white.opacity(0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .transition(.slide.combined(with: .opacity))
-                    }
-                }
-                
-                // Conversations Accordion
-                VStack(spacing: 0) {
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            conversationsAccordionExpanded.toggle()
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "text.bubble")
-                                .font(.system(size: 16))
-                                .foregroundStyle(.white)
-                            
-                            Text("Conversations")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                            
-                            Spacer()
-                            
-                            Image(systemName: conversationsAccordionExpanded ? "chevron.down" : "chevron.right")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    if conversationsAccordionExpanded {
-                        conversationsInterface
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 12)
-                            .background(Color.white.opacity(0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .transition(.slide.combined(with: .opacity))
-                    }
-                }
-            }
-            .padding(12)
-        }
-    }
-    
-    // MARK: - Chat Interfaces
-    private var chatInterface: some View {
-        VStack(spacing: 0) {
-            // Chat messages area
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        ForEach(chatMessages) { message in
-                            HStack {
-                                if message.isUser {
-                                    Spacer()
-                                    chatBubble(message: message, isUser: true)
-                                } else {
-                                    chatBubble(message: message, isUser: false)
-                                    Spacer()
-                                }
-                            }
-                        }
-                    }
-                    .padding()
-                }
-                .onChange(of: chatMessages.count) { _ in
-                    if let lastMessage = chatMessages.last {
-                        withAnimation(.easeInOut) {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
-                    }
-                }
-            }
-            .frame(height: 300)
-            
-            // Input area at bottom
-            VStack(spacing: 0) {
-                Divider()
-                    .background(Color.white.opacity(0.2))
-                
-                HStack(spacing: 12) {
-                    TextField("Type your message...", text: $chatInputText, axis: .vertical)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(20)
-                        .lineLimit(1...4)
-                        .onSubmit {
-                            sendMessage()
-                        }
-                    
-                    Button(action: sendMessage) {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                            .background(chatInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
-                                       Color.gray.opacity(0.3) : Color.blue.opacity(0.7))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(chatInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                .padding()
-            }
-        }
-    }
-    
-    private var conversationsInterface: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // New conversation button
-            Button(action: startNewConversation) {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Start New Conversation")
-                        .foregroundStyle(.white)
-                    Spacer()
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
-            
-            // Conversations list
-            LazyVStack(spacing: 8) {
-                ForEach(conversations) { conversation in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(conversation.title)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                            Text(conversation.lastMessage)
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white.opacity(0.7))
-                                .lineLimit(1)
-                        }
-                        Spacer()
-                        
-                        Button(action: {
-                            loadConversation(conversation)
-                        }) {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.05))
-                    .cornerRadius(8)
-                }
-            }
-        }
-    }
-    
-    private func startNewConversation() {
-        let newConversation = Conversation(title: "New Conversation", lastMessage: "")
-        conversations.insert(newConversation, at: 0)
-        currentConversationId = newConversation.id
-        chatMessages.removeAll()
-        chatMessages.append(ChatMessage(content: "Hello! How can I help you with your new conversation?", isUser: false))
-        
-        // Switch to chat accordion and close conversations
-        chatAccordionExpanded = true
-        conversationsAccordionExpanded = false
-    }
-    
-    private func loadConversation(_ conversation: Conversation) {
-        currentConversationId = conversation.id
-        // In a real app, you would load the conversation messages from storage
-        chatMessages.removeAll()
-        chatMessages.append(ChatMessage(content: "Loading conversation: \(conversation.title)", isUser: false))
-        
-        // Switch to chat accordion
-        chatAccordionExpanded = true
-        conversationsAccordionExpanded = false
-    }
-    
-    private func chatBubble(message: ChatMessage, isUser: Bool) -> some View {
-        Text(message.content)
-            .font(.system(size: 14))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(isUser ? Color.blue.opacity(0.7) : Color.white.opacity(0.2))
-            .cornerRadius(16)
-            .frame(maxWidth: 250, alignment: isUser ? .trailing : .leading)
-    }
-    
-    private func sendMessage() {
-        let messageText = chatInputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !messageText.isEmpty else { return }
-        
-        // Add user message
-        chatMessages.append(ChatMessage(content: messageText, isUser: true))
-        chatInputText = ""
-        
-        // Simulate AI response after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            let responses = [
-                "I understand. Let me help you with that.",
-                "That's interesting! Can you tell me more?",
-                "I'm here to assist you with your tasks and questions.",
-                "Great question! Here's what I think..."
-            ]
-            if let randomResponse = responses.randomElement() {
-                chatMessages.append(ChatMessage(content: randomResponse, isUser: false))
-            }
-        }
+        ChatView(communicationSettings: communicationSettings, viewModel: chatViewModel)
     }
     
     // MARK: - Tasks Tab View (broken into smaller components)
@@ -959,6 +733,7 @@ struct HUDView: View {
     
     
     
+    
     private var bottomTabSelector: some View {
         HStack(spacing: 0) {
             ForEach(ExpandedTab.allCases, id: \.self) { tab in
@@ -992,41 +767,6 @@ struct HUDView: View {
         .cornerRadius(10)
     }
     
-    // MARK: - Chat Input Bar
-    private var chatInputBar: some View {
-        HStack(spacing: 8) {
-            TextField("Type message...", text: $chatInputText)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(6)
-                .onSubmit {
-                    if !chatInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        // Handle chat message send
-                        print("Sending chat message: \(chatInputText)")
-                        chatInputText = ""
-                    }
-                }
-            
-            Button(action: {
-                if !chatInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    print("Sending chat message: \(chatInputText)")
-                    chatInputText = ""
-                }
-            }) {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.8))
-                    .frame(width: 24, height: 24)
-                    .background(Color.blue.opacity(0.3))
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-        }
-    }
     
     // MARK: - Hover Controls
     private var hoverControls: some View {
@@ -1559,5 +1299,99 @@ struct HUDView: View {
         }
     }
     
+    // MARK: - Chat Functions
+    private func sendChatMessage() {
+        guard !chatMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard let conversationId = activeConversationId else {
+            showNoConversationError()
+            return
+        }
+        
+        let messageText = chatMessage
+        chatMessage = ""
+        isSendingChatMessage = true
+        lastChatResponse = nil
+        
+        // Use ChatService to send message
+        Task {
+            let chatService = ChatService()
+            let result = await chatService.sendMessage(
+                to: communicationSettings.chatMessageURL,
+                conversationId: conversationId,
+                question: messageText
+            )
+            
+            await MainActor.run {
+                isSendingChatMessage = false
+                switch result {
+                case .success(let response):
+                    lastChatResponse = response.data.answer.replacingOccurrences(of: "\\n", with: "\n")
+                    print("✅ Chat message sent successfully from floating panel")
+                    
+                case .failure(let error):
+                    print("❌ Failed to send chat message: \(error.localizedDescription)")
+                    lastChatResponse = "Error sending message"
+                }
+            }
+        }
+    }
+    
+    private func showNoConversationError() {
+        // Don't clear the message, just show error permanently until user closes
+        lastChatResponse = "Please select a conversation first"
+        print("⚠️ No conversation selected for chat message")
+    }
+    
+    // MARK: - Chat Response Box
+    private var chatResponseBox: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let response = lastChatResponse {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(response)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Button(action: {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            lastChatResponse = nil
+                        }
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                            .frame(width: 16, height: 16)
+                            .background(Color.white.opacity(0.1))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
+        }
+        .frame(maxWidth: gradientSettings.windowSize.width)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.black.opacity(0.3),
+                            Color.black.opacity(0.2)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 6)
+        .padding(.top, 4)
+    }
+    
 }
-
