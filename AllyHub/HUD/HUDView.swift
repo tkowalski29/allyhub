@@ -53,6 +53,12 @@ struct HUDView: View {
     @State private var inlineTaskDescription: String = ""
     @State private var inlineAudioTaskSubmitted = false
     
+    // Inline screen recording state
+    @State private var showingInlineScreenRecorder = false
+    @StateObject private var inlineScreenUploadService = FileUploadService()
+    @State private var inlineScreenTaskSubmitted = false
+    @State private var inlineScreenManager: ScreenRecorderManager?
+    
     struct ChatMessage: Identifiable, Equatable {
         let id = UUID()
         let content: String
@@ -141,6 +147,19 @@ struct HUDView: View {
                 inlineRecordingView
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
+            
+            // Inline screen recording interface (shown below compact view)
+            if showingInlineScreenRecorder && !isExpanded {
+                if #available(macOS 12.3, *) {
+                    inlineScreenRecordingView
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                } else {
+                    // Fallback for older macOS
+                    Text("Screen recording requires macOS 12.3+")
+                        .foregroundStyle(.orange)
+                        .padding()
+                }
+            }
         }
         .onAppear {
             startNotificationRefreshTimer()
@@ -213,7 +232,19 @@ struct HUDView: View {
             inlineAudioTaskSubmitted = false // Reset flag for new recording
             inlineAudioManager.startRecording()
         case .screen:
-            showingQuickScreenRecorder = true
+            // Initialize screen manager if needed (macOS 12.3+)
+            if #available(macOS 12.3, *) {
+                if inlineScreenManager == nil {
+                    inlineScreenManager = ScreenRecorderManager()
+                }
+                showingInlineScreenRecorder = true
+                // Start screen recording immediately
+                inlineScreenTaskSubmitted = false // Reset flag for new recording
+                inlineScreenManager?.startRecording()
+            } else {
+                // Fallback for older macOS - use sheet
+                showingQuickScreenRecorder = true
+            }
         }
     }
     
@@ -1342,6 +1373,188 @@ struct HUDView: View {
             } else {
                 print("❌ Failed to submit inline audio task: \(result.error ?? "Unknown error")")
                 inlineAudioManager.errorMessage = result.error
+            }
+        }
+    }
+    
+    // MARK: - Inline Screen Recording View
+    
+    @available(macOS 12.3, *)
+    private var inlineScreenRecordingView: some View {
+        VStack(spacing: 12) {
+            // Recording status and visualization
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    // Recording status
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 8, height: 8)
+                            .opacity((inlineScreenManager?.isRecording ?? false) ? 1 : 0.3)
+                            .scaleEffect((inlineScreenManager?.isRecording ?? false) ? 1.2 : 1.0)
+                            .animation(
+                                (inlineScreenManager?.isRecording ?? false) ? 
+                                .easeInOut(duration: 0.8).repeatForever(autoreverses: true) : 
+                                .easeInOut(duration: 0.2), 
+                                value: inlineScreenManager?.isRecording ?? false
+                            )
+                        
+                        Text((inlineScreenManager?.isRecording ?? false) ? "Recording screen..." : "Processing...")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white)
+                    }
+                    
+                    Spacer()
+                    
+                    // Timer display
+                    Text(formatTime(inlineScreenManager?.recordingTime ?? 0))
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                    
+                    // Stop recording button (only show stop when recording)
+                    if inlineScreenManager?.isRecording ?? false {
+                        Button(action: {
+                            inlineScreenManager?.stopRecording()
+                        }) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // Close button
+                    Button(action: {
+                        if inlineScreenManager?.isRecording ?? false {
+                            inlineScreenManager?.stopRecording()
+                        }
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingInlineScreenRecorder = false
+                            inlineScreenTaskSubmitted = false // Reset flag
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // Recording mode indicator
+                HStack(spacing: 8) {
+                    Image(systemName: "display")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.orange)
+                    
+                    Text(inlineScreenManager?.recordingMode.displayName ?? "Screen")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.7))
+                    
+                    Spacer()
+                    
+                    // Recording quality indicator
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 6, height: 6)
+                        
+                        Text("1080p")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.green)
+                    }
+                }
+                
+                // Error message
+                if let error = inlineScreenManager?.errorMessage {
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .animation(.easeInOut(duration: 0.3), value: inlineScreenManager?.isRecording ?? false)
+        .onReceive(NotificationCenter.default.publisher(for: .screenRecordingFinished)) { _ in
+            // Auto-submit task when screen recording finishes
+            if !inlineScreenTaskSubmitted {
+                Task {
+                    await submitInlineScreenTask()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Inline Screen Recording Task Submission
+    
+    @available(macOS 12.3, *)
+    private func submitInlineScreenTask() async {
+        guard !inlineScreenTaskSubmitted,
+              let screenManager = inlineScreenManager,
+              let videoURL = screenManager.recordingURL else {
+            return
+        }
+        
+        inlineScreenTaskSubmitted = true
+        
+        // Create task with screen recording info
+        let taskTitle = "Screen recording \(Date().formatted(date: .abbreviated, time: .shortened))"
+        let taskDescription = "Screen recording captured using \(screenManager.recordingMode.displayName) mode"
+        
+        // Create upload metadata using the same structure as ScreenRecorderView
+        let metadata = ScreenUploadMetadata(
+            title: taskTitle,
+            description: taskDescription
+        )
+        
+        // Get upload endpoint from CommunicationSettings
+        let uploadEndpoint = communicationSettings.taskCreateURL
+        
+        // Use FileUploadService for consistent multipart/form-data upload
+        let result = await inlineScreenUploadService.uploadScreenRecording(
+            from: videoURL,
+            to: uploadEndpoint,
+            withMetadata: metadata
+        )
+        
+        await MainActor.run {
+            if result.isSuccess {
+                // Create local task for immediate UI update
+                let task = TaskItem(
+                    title: taskTitle,
+                    description: taskDescription,
+                    status: .todo,
+                    priority: .medium,
+                    isCompleted: false,
+                    createdAt: Date(),
+                    creationType: .screen,
+                    audioUrl: videoURL.path // Using audioUrl field for video path as well
+                )
+                
+                // Add to tasks manager
+                addQuickTaskToSystem(task)
+                
+                // Close inline recorder
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showingInlineScreenRecorder = false
+                }
+                
+                print("✅ Inline screen recording task submitted successfully via FileUploadService")
+            } else {
+                print("❌ Failed to submit inline screen recording task: \(result.error ?? "Unknown error")")
+                inlineScreenManager?.errorMessage = result.error
             }
         }
     }

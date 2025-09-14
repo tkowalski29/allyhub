@@ -131,6 +131,9 @@ final class ScreenRecorderManager: ObservableObject {
                 timer?.invalidate()
                 timer = nil
                 errorMessage = nil
+                
+                // Post notification that recording finished
+                NotificationCenter.default.post(name: .screenRecordingFinished, object: nil)
             }
         }
     }
@@ -696,6 +699,12 @@ enum ScreenRecordingError: LocalizedError {
             return "Failed to start screen capture: \(error.localizedDescription)"
         }
     }
+}
+
+// MARK: - Notifications
+
+extension Notification.Name {
+    static let screenRecordingFinished = Notification.Name("screenRecordingFinished")
 }
 
 #Preview {
