@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct HUDView: View {
     // MARK: - Properties
@@ -7,6 +8,7 @@ struct HUDView: View {
     @ObservedObject var gradientSettings: GradientSettings
     @ObservedObject var communicationSettings: CommunicationSettings
     @ObservedObject var keyboardShortcutsSettings: KeyboardShortcutsSettings
+    @ObservedObject var taskCreationSettings: TaskCreationSettings
     
     let isExpanded: Bool
     let isOnLeftSide: Bool
@@ -17,6 +19,7 @@ struct HUDView: View {
     @State private var isRightSectionHovering = false
     @State private var isChatInputFocused = false
     @State private var selectedTab: ExpandedTab = .tasks
+    @State private var showingTaskCreationOptions = false
     @State private var chatTabChatAccordionExpanded = true
     @State private var conversationsAccordionExpanded = false
     @State private var chatAccordionExpanded = true
@@ -39,6 +42,22 @@ struct HUDView: View {
     @State private var isRefreshing = false
     @State private var isRefreshButtonAnimating = false
     @State private var notificationsRefreshTimer: Timer?
+    @State private var showingQuickAudioRecorder = false
+    @State private var showingQuickScreenRecorder = false
+    
+    // Inline recording state
+    @State private var showingInlineAudioRecorder = false
+    @StateObject private var inlineAudioManager = AudioRecorderManager()
+    @StateObject private var inlineUploadService = FileUploadService()
+    @State private var inlineTaskTitle: String = ""
+    @State private var inlineTaskDescription: String = ""
+    @State private var inlineAudioTaskSubmitted = false
+    
+    // Inline screen recording state
+    @State private var showingInlineScreenRecorder = false
+    @StateObject private var inlineScreenUploadService = FileUploadService()
+    @State private var inlineScreenTaskSubmitted = false
+    @State private var inlineScreenManager: ScreenRecorderManager?
     
     struct ChatMessage: Identifiable, Equatable {
         let id = UUID()
@@ -67,6 +86,7 @@ struct HUDView: View {
          gradientSettings: GradientSettings, 
          communicationSettings: CommunicationSettings,
          keyboardShortcutsSettings: KeyboardShortcutsSettings,
+         taskCreationSettings: TaskCreationSettings,
          isExpanded: Bool,
          isOnLeftSide: Bool,
          onExpand: @escaping () -> Void,
@@ -76,6 +96,7 @@ struct HUDView: View {
         self.gradientSettings = gradientSettings
         self.communicationSettings = communicationSettings
         self.keyboardShortcutsSettings = keyboardShortcutsSettings
+        self.taskCreationSettings = taskCreationSettings
         self.isExpanded = isExpanded
         self.isOnLeftSide = isOnLeftSide
         self.onExpand = onExpand
@@ -107,18 +128,39 @@ struct HUDView: View {
     
     // MARK: - Body
     var body: some View {
-        ZStack {
-            // Background with gradient or solid
-            backgroundView
+        VStack(spacing: 0) {
+            ZStack {
+                // Background with gradient or solid
+                backgroundView
+                
+                // Main content
+                if isExpanded {
+                    expandedView
+                } else {
+                    compactView
+                }
+            }
+            .frame(width: gradientSettings.windowSize.width, height: isExpanded ? nil : 44)
             
-            // Main content
-            if isExpanded {
-                expandedView
-            } else {
-                compactView
+            // Inline recording interface (shown below compact view)
+            if showingInlineAudioRecorder && !isExpanded {
+                inlineRecordingView
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            // Inline screen recording interface (shown below compact view)
+            if showingInlineScreenRecorder && !isExpanded {
+                if #available(macOS 12.3, *) {
+                    inlineScreenRecordingView
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                } else {
+                    // Fallback for older macOS
+                    Text("Screen recording requires macOS 12.3+")
+                        .foregroundStyle(.orange)
+                        .padding()
+                }
             }
         }
-        .frame(width: gradientSettings.windowSize.width, height: isExpanded ? nil : 44)
         .onAppear {
             startNotificationRefreshTimer()
             // Fetch notifications immediately when view appears
@@ -127,6 +169,20 @@ struct HUDView: View {
             tasksManager.fetchTasks()
             // Fetch actions when view appears
             actionsManager.fetchActions()
+        }
+        .sheet(isPresented: $showingQuickAudioRecorder) {
+            AudioRecorderView(onTaskCreated: { task in
+                addQuickTaskToSystem(task)
+            }, communicationSettings: communicationSettings)
+        }
+        .sheet(isPresented: $showingQuickScreenRecorder) {
+            if #available(macOS 12.3, *) {
+                ScreenRecorderView(onTaskCreated: { task in
+                    addQuickTaskToSystem(task)
+                }, communicationSettings: communicationSettings)
+            } else {
+                ScreenRecorderFallbackView()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .nextTabKeyboardShortcut)) { _ in
             nextTab()
@@ -168,6 +224,42 @@ struct HUDView: View {
     }
     
     // MARK: - Timer Actions
+    private func handleQuickTaskCreation() {
+        switch taskCreationSettings.floatingPanelDefaultAction {
+        case .microphone:
+            showingInlineAudioRecorder = true
+            // Start recording immediately
+            inlineAudioTaskSubmitted = false // Reset flag for new recording
+            inlineAudioManager.startRecording()
+        case .screen:
+            // Initialize screen manager if needed (macOS 12.3+)
+            if #available(macOS 12.3, *) {
+                if inlineScreenManager == nil {
+                    inlineScreenManager = ScreenRecorderManager()
+                }
+                showingInlineScreenRecorder = true
+                // Start screen recording immediately
+                inlineScreenTaskSubmitted = false // Reset flag for new recording
+                inlineScreenManager?.startRecording()
+            } else {
+                // Fallback for older macOS - use sheet
+                showingQuickScreenRecorder = true
+            }
+        }
+    }
+    
+    private func addQuickTaskToSystem(_ task: TaskItem) {
+        // Add task to tasks manager
+        tasksManager.tasks.append(task)
+        
+        // Set as active task if it's the first one
+        if tasksManager.tasks.count == 1 {
+            activeTaskId = task.id
+        }
+        
+        print("✅ Quick task created: \(task.title)")
+    }
+    
     private func startTimer() {
         print("🟢 startTimer() called")
         timerModel.start()
@@ -183,7 +275,7 @@ struct HUDView: View {
     private func sendTimerAction(action: String) {
         print("📤 sendTimerAction() called with action: \(action)")
         print("📤 taskUpdateURL: \(communicationSettings.taskUpdateURL)")
-        print("📤 actionsManager available: \(actionsManager != nil)")
+        print("📤 actionsManager available: true")
         print("📤 activeTask: \(activeTask?.title ?? "nil")")
         
         // Get current date for start action, elapsed time for stop action
@@ -191,16 +283,13 @@ struct HUDView: View {
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
-        let dateValue: String
         let timestampValue: String
         
         if action == "start" {
             // For start: use current date and timestamp
-            dateValue = dateFormatter.string(from: currentDate)
             timestampValue = dateFormatter.string(from: currentDate)
         } else {
             // For stop: use current date but timestamp should reflect elapsed time
-            dateValue = dateFormatter.string(from: currentDate)
             let elapsedSeconds = timerModel.elapsedTime
             let elapsedDate = Date(timeIntervalSince1970: elapsedSeconds)
             timestampValue = dateFormatter.string(from: elapsedDate)
@@ -286,7 +375,7 @@ struct HUDView: View {
                 Spacer()
                 
                 if isRightSectionHovering && !isChatInputFocused {
-                    // Hover controls (only expand and next task)
+                    // Hover controls (expand, timer, and task creation)
                     HStack(spacing: 8) {
                         // Expand button
                         Button(action: onExpand) {
@@ -312,6 +401,19 @@ struct HUDView: View {
                                 .foregroundColor(.white)
                                 .frame(width: 28, height: 28)
                                 .background(Color.white.opacity(0.2))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // Quick task creation button (configurable action)
+                        Button(action: {
+                            handleQuickTaskCreation()
+                        }) {
+                            Image(systemName: taskCreationSettings.floatingPanelDefaultAction.iconName)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 28, height: 28)
+                                .background(taskCreationSettings.floatingPanelDefaultAction == .microphone ? Color.orange.opacity(0.8) : Color.purple.opacity(0.8))
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
@@ -386,14 +488,15 @@ struct HUDView: View {
                 // 4. Add Task button - for Tasks tab only
                 if selectedTab == .tasks {
                     Button(action: {
-                        // TODO: Add new task functionality
-                        print("Add new task button pressed")
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingTaskCreationOptions.toggle()
+                        }
                     }) {
-                        Image(systemName: "plus")
+                        Image(systemName: showingTaskCreationOptions ? "xmark" : "plus")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 28, height: 28)
-                            .background(Color.blue.opacity(0.7))
+                            .background((showingTaskCreationOptions ? Color.red : Color.blue).opacity(0.7))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -480,7 +583,8 @@ struct HUDView: View {
                 SettingsView(
                     communicationSettings: communicationSettings,
                     gradientSettings: gradientSettings,
-                    keyboardShortcutsSettings: keyboardShortcutsSettings
+                    keyboardShortcutsSettings: keyboardShortcutsSettings,
+                    taskCreationSettings: taskCreationSettings
                 )
             }
         }
@@ -748,7 +852,7 @@ struct HUDView: View {
     
     // MARK: - Tasks Tab View (broken into smaller components)
     private var tasksTabView: some View {
-        TasksView(tasksManager: tasksManager, tasksModel: tasksModel, timerModel: timerModel, actionsManager: actionsManager, communicationSettings: communicationSettings)
+        TasksView(tasksManager: tasksManager, tasksModel: tasksModel, timerModel: timerModel, actionsManager: actionsManager, communicationSettings: communicationSettings, taskCreationSettings: taskCreationSettings, showingTaskCreationOptions: $showingTaskCreationOptions)
     }
     
     private var notificationsTabView: some View {
@@ -1077,6 +1181,383 @@ struct HUDView: View {
             selectedTab = allTabs[nextIndex]
         }
     }
+    
+    // MARK: - Inline Recording View
+    
+    private var inlineRecordingView: some View {
+        VStack(spacing: 12) {
+            // Recording status and visualization
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    // Recording status
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 8, height: 8)
+                            .opacity(inlineAudioManager.isRecording ? 1 : 0.3)
+                            .scaleEffect(inlineAudioManager.isRecording ? 1.2 : 1.0)
+                            .animation(
+                                inlineAudioManager.isRecording ? 
+                                .easeInOut(duration: 0.8).repeatForever(autoreverses: true) : 
+                                .easeInOut(duration: 0.2), 
+                                value: inlineAudioManager.isRecording
+                            )
+                        
+                        Text(inlineAudioManager.isRecording ? "Recording..." : "Processing...")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white)
+                    }
+                    
+                    Spacer()
+                    
+                    // Timer display
+                    Text(formatTime(inlineAudioManager.recordingTime))
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                    
+                    // Stop recording button (only show stop when recording)
+                    if inlineAudioManager.isRecording {
+                        Button(action: {
+                            inlineAudioManager.stopRecording()
+                        }) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // Close button
+                    Button(action: {
+                        if inlineAudioManager.isRecording {
+                            inlineAudioManager.stopRecording()
+                        }
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingInlineAudioRecorder = false
+                            inlineAudioTaskSubmitted = false // Reset flag
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // Audio level visualization (only when recording)
+                if inlineAudioManager.isRecording {
+                    HStack(spacing: 2) {
+                        ForEach(0..<15, id: \.self) { index in
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(inlineAudioManager.audioLevels > Float(index) / 15.0 ? .orange : .white.opacity(0.3))
+                                .frame(width: 4, height: CGFloat(8 + index * 1))
+                        }
+                    }
+                }
+                
+                // Transcription status
+                if inlineAudioManager.isTranscribing {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                            .progressViewStyle(CircularProgressViewStyle(tint: .orange))
+                        
+                        Text("Transcribing audio...")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                } else if !inlineAudioManager.transcription.isEmpty {
+                    Text(inlineAudioManager.transcription)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                }
+                
+                // Error message
+                if let error = inlineAudioManager.errorMessage {
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .animation(.easeInOut(duration: 0.3), value: inlineAudioManager.isRecording)
+        .onReceive(inlineAudioManager.$transcription) { transcription in
+            // Auto-submit task when transcription is ready and not already submitted
+            if !transcription.isEmpty && !inlineAudioTaskSubmitted && !inlineAudioManager.isTranscribing {
+                Task {
+                    await submitInlineAudioTask()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Inline Audio Task Submission
+    
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    private func submitInlineAudioTask() async {
+        guard !inlineAudioTaskSubmitted,
+              let audioURL = inlineAudioManager.recordingURL else {
+            return
+        }
+        
+        inlineAudioTaskSubmitted = true
+        
+        // Create task with transcription as title and description
+        let taskTitle = inlineAudioManager.transcription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let taskDescription = "Audio task recorded on \(Date().formatted(date: .abbreviated, time: .shortened))"
+        
+        // Create upload metadata using the same structure as AudioRecorderView
+        let metadata = AudioUploadMetadata(
+            title: taskTitle,
+            description: taskDescription,
+            transcription: inlineAudioManager.transcription.isEmpty ? nil : inlineAudioManager.transcription,
+            duration: inlineAudioManager.recordingTime
+        )
+        
+        // Get upload endpoint from CommunicationSettings
+        let uploadEndpoint = communicationSettings.taskCreateURL
+        
+        // Use FileUploadService for consistent multipart/form-data upload
+        let result = await inlineUploadService.uploadAudioRecording(
+            from: audioURL,
+            to: uploadEndpoint,
+            withMetadata: metadata
+        )
+        
+        await MainActor.run {
+            if result.isSuccess {
+                // Create local task for immediate UI update
+                let task = TaskItem(
+                    title: taskTitle,
+                    description: taskDescription,
+                    status: .todo,
+                    priority: .medium,
+                    isCompleted: false,
+                    createdAt: Date(),
+                    creationType: .microphone,
+                    audioUrl: audioURL.path,
+                    transcription: inlineAudioManager.transcription
+                )
+                
+                // Add to tasks manager
+                addQuickTaskToSystem(task)
+                
+                // Close inline recorder
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showingInlineAudioRecorder = false
+                }
+                
+                print("✅ Inline audio task submitted successfully via FileUploadService")
+            } else {
+                print("❌ Failed to submit inline audio task: \(result.error ?? "Unknown error")")
+                inlineAudioManager.errorMessage = result.error
+            }
+        }
+    }
+    
+    // MARK: - Inline Screen Recording View
+    
+    @available(macOS 12.3, *)
+    private var inlineScreenRecordingView: some View {
+        VStack(spacing: 12) {
+            // Recording status and visualization
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    // Recording status
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 8, height: 8)
+                            .opacity((inlineScreenManager?.isRecording ?? false) ? 1 : 0.3)
+                            .scaleEffect((inlineScreenManager?.isRecording ?? false) ? 1.2 : 1.0)
+                            .animation(
+                                (inlineScreenManager?.isRecording ?? false) ? 
+                                .easeInOut(duration: 0.8).repeatForever(autoreverses: true) : 
+                                .easeInOut(duration: 0.2), 
+                                value: inlineScreenManager?.isRecording ?? false
+                            )
+                        
+                        Text((inlineScreenManager?.isRecording ?? false) ? "Recording screen..." : "Processing...")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white)
+                    }
+                    
+                    Spacer()
+                    
+                    // Timer display
+                    Text(formatTime(inlineScreenManager?.recordingTime ?? 0))
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                    
+                    // Stop recording button (only show stop when recording)
+                    if inlineScreenManager?.isRecording ?? false {
+                        Button(action: {
+                            inlineScreenManager?.stopRecording()
+                        }) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // Close button
+                    Button(action: {
+                        if inlineScreenManager?.isRecording ?? false {
+                            inlineScreenManager?.stopRecording()
+                        }
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingInlineScreenRecorder = false
+                            inlineScreenTaskSubmitted = false // Reset flag
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // Recording mode indicator
+                HStack(spacing: 8) {
+                    Image(systemName: "display")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.orange)
+                    
+                    Text(inlineScreenManager?.recordingMode.displayName ?? "Screen")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.7))
+                    
+                    Spacer()
+                    
+                    // Recording quality indicator
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 6, height: 6)
+                        
+                        Text("1080p")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.green)
+                    }
+                }
+                
+                // Error message
+                if let error = inlineScreenManager?.errorMessage {
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .animation(.easeInOut(duration: 0.3), value: inlineScreenManager?.isRecording ?? false)
+        .onReceive(NotificationCenter.default.publisher(for: .screenRecordingFinished)) { _ in
+            // Auto-submit task when screen recording finishes
+            if !inlineScreenTaskSubmitted {
+                Task {
+                    await submitInlineScreenTask()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Inline Screen Recording Task Submission
+    
+    @available(macOS 12.3, *)
+    private func submitInlineScreenTask() async {
+        guard !inlineScreenTaskSubmitted,
+              let screenManager = inlineScreenManager,
+              let videoURL = screenManager.recordingURL else {
+            return
+        }
+        
+        inlineScreenTaskSubmitted = true
+        
+        // Create task with screen recording info
+        let taskTitle = "Screen recording \(Date().formatted(date: .abbreviated, time: .shortened))"
+        let taskDescription = "Screen recording captured using \(screenManager.recordingMode.displayName) mode"
+        
+        // Create upload metadata using the same structure as ScreenRecorderView
+        let metadata = ScreenUploadMetadata(
+            title: taskTitle,
+            description: taskDescription
+        )
+        
+        // Get upload endpoint from CommunicationSettings
+        let uploadEndpoint = communicationSettings.taskCreateURL
+        
+        // Use FileUploadService for consistent multipart/form-data upload
+        let result = await inlineScreenUploadService.uploadScreenRecording(
+            from: videoURL,
+            to: uploadEndpoint,
+            withMetadata: metadata
+        )
+        
+        await MainActor.run {
+            if result.isSuccess {
+                // Create local task for immediate UI update
+                let task = TaskItem(
+                    title: taskTitle,
+                    description: taskDescription,
+                    status: .todo,
+                    priority: .medium,
+                    isCompleted: false,
+                    createdAt: Date(),
+                    creationType: .screen,
+                    audioUrl: videoURL.path // Using audioUrl field for video path as well
+                )
+                
+                // Add to tasks manager
+                addQuickTaskToSystem(task)
+                
+                // Close inline recorder
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showingInlineScreenRecorder = false
+                }
+                
+                print("✅ Inline screen recording task submitted successfully via FileUploadService")
+            } else {
+                print("❌ Failed to submit inline screen recording task: \(result.error ?? "Unknown error")")
+                inlineScreenManager?.errorMessage = result.error
+            }
+        }
+    }
+    
 }
-
 

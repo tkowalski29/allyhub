@@ -8,6 +8,7 @@ final class FloatingPanel: NSPanel {
     private let gradientSettings: GradientSettings
     private let communicationSettings: CommunicationSettings
     private let keyboardShortcutsSettings: KeyboardShortcutsSettings
+    private let taskCreationSettings: TaskCreationSettings
     private var hostingView: NSHostingView<HUDView>?
     private var compactSize: NSSize {
         return NSSize(width: gradientSettings.windowSize.width, height: 44)
@@ -30,12 +31,13 @@ final class FloatingPanel: NSPanel {
     private var globalEventMonitor: Any?
     
     // MARK: - Initialization
-    init(timerModel: TimerModel, tasksModel: TasksModel, gradientSettings: GradientSettings, communicationSettings: CommunicationSettings, keyboardShortcutsSettings: KeyboardShortcutsSettings) {
+    init(timerModel: TimerModel, tasksModel: TasksModel, gradientSettings: GradientSettings, communicationSettings: CommunicationSettings, keyboardShortcutsSettings: KeyboardShortcutsSettings, taskCreationSettings: TaskCreationSettings) {
         self.timerModel = timerModel
         self.tasksModel = tasksModel
         self.gradientSettings = gradientSettings
         self.communicationSettings = communicationSettings
         self.keyboardShortcutsSettings = keyboardShortcutsSettings
+        self.taskCreationSettings = taskCreationSettings
         
         // Initialize panel with compact size
         super.init(
@@ -97,6 +99,7 @@ final class FloatingPanel: NSPanel {
             gradientSettings: gradientSettings,
             communicationSettings: communicationSettings,
             keyboardShortcutsSettings: keyboardShortcutsSettings,
+            taskCreationSettings: taskCreationSettings,
             isExpanded: isExpanded,
             isOnLeftSide: isOnLeftSide,
             onExpand: { [weak self] in
@@ -261,6 +264,7 @@ final class FloatingPanel: NSPanel {
             gradientSettings: gradientSettings,
             communicationSettings: communicationSettings,
             keyboardShortcutsSettings: keyboardShortcutsSettings,
+            taskCreationSettings: taskCreationSettings,
             isExpanded: isExpanded,
             isOnLeftSide: isOnLeftSide,
             onExpand: { [weak self] in

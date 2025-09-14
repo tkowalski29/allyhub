@@ -5,7 +5,9 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 
 ## URL Endpoints
 
-### 1. Tasks Fetch URL
+### Task
+
+#### 1. Tasks Fetch URL
 **Pole**: `tasksFetchURL`
 **Opis**: URL do pobierania listy zadań
 **Method**: POST
@@ -34,7 +36,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 
 ---
 
-### 2. Task Update URL
+#### 2. Task Update URL
 **Pole**: `taskUpdateURL`
 **Opis**: URL do wysyłania aktualizacji statusu zadania
 **Method**: POST
@@ -47,7 +49,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
   "timestamp": "ISO8601 timestamp"
 }
 ```
-
 **Response Format**: JSON
 ```json
 {
@@ -58,58 +59,156 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 
 ---
 
-### 3. Chat History URL
-**Pole**: `chatHistoryURL`
-**Opis**: URL do pobierania historii konwersacji
+### 3. Task Create URL
+**Pole**: `taskCreateURL`  
+**Opis**: URL do tworzenia nowych zadań z różnymi metodami input (formularz, audio, screen recording)
 **Method**: POST
-
+**Content-Type**: `multipart/form-data` (dla zadań z plikami) lub `application/json` (dla zadań tekstowych)
+**Request Format**: JSON/FormData
+```json
+{
+  "type": "form|microphone|screen",
+  "title": "string",
+  "description": "string", 
+  "due_date": "ISO8601 timestamp",
+  "transcription": {
+    "content": "string",
+    "duration": number
+  }
+}
+```
 **Response Format**: JSON
 ```json
 {
-  "messages": [
+  "success": boolean,
+  "message": "string",
+  "data": {
+    "id": "string",
+    "url": "string"
+  }
+}
+```
+
+**File Upload (dla audio/screen recordings):**
+Pliki mogą być załączane jako `multipart/form-data`:
+```
+Content-Type: multipart/form-data
+
+--boundary
+Content-Disposition: form-data; name="task_data"
+Content-Type: application/json
+
+{JSON data jak wyżej}
+
+--boundary  
+Content-Disposition: form-data; name="recording_file"; filename="recording_123456.m4a"
+Content-Type: audio/mp4
+
+{binary audio/video data}
+
+--boundary--
+```
+
+---
+
+### Chat
+
+#### 1. Chat Collection URL
+**Pole**: `chatHistoryURL`
+**Opis**: URL do pobierania konwersacji
+**Method**: POST
+**Response Format**: JSON
+```json
+{
+  "collection": [
     {
       "id": "string",
-      "content": "string",
-      "senderId": "string",
-      "senderName": "string",
-      "timestamp": "ISO8601 timestamp",
-      "type": "user|assistant|system"
+      "resume": "string"
     }
   ],
-  "totalCount": number,
-  "hasMore": boolean
+  "count": number
 }
 ```
 
 ---
 
-### 4. Chat Stream URL
+#### 2. Chat Message URL
 **Pole**: `chatStreamURL`
-**Opis**: URL dla streamowanej komunikacji z chatem (WebSocket lub Server-Sent Events)
-**Protocol**: WebSocket lub HTTP POST
-**Request Format** (POST): JSON
+**Opis**: URL dla komunikacji z chatem
+**Method**: POST
+**Response Format**: JSON
 ```json
 {
-  "message": "string",
-  "userId": "string",
-  "sessionId": "string",
-  "timestamp": "ISO8601 timestamp"
+    "conversationId": "string",
+    "question": "string"
 }
 ```
-
-**WebSocket Message Format**: JSON
+**Response Format**: JSON
 ```json
 {
-  "type": "message|typing|status",
-  "content": "string",
-  "senderId": "string",
-  "timestamp": "ISO8601 timestamp"
+  "success": boolean,
+  "message": "string",
+  "data": {
+    "conversationId": "string",
+    "answer": "string"
+  }
 }
 ```
 
 ---
 
-### 5. Notifications Fetch URL
+#### 3. Chat Get Conversation
+**Pole**: `chatGetConversationURL`
+**Opis**: URL dla historii danej konwersacji
+**Method**: POST
+**Response Format**: JSON
+```json
+{
+    "conversationId": "string"
+}
+```
+**Response Format**: JSON
+```json
+{
+  "collection": [
+    {
+      "id": "string",
+      "date": "string",
+      "question": "string",
+      "answer": "string"
+    }
+  ],
+  "count": number
+}
+```
+
+---
+
+#### 4. Chat Create Conversation
+**Pole**: `chatCreateConversationURL`
+**Opis**: URL do zakladania nowej konwersacji
+**Method**: POST
+**Response Format**: JSON
+```json
+{
+}
+```
+**Response Format**: JSON
+```json
+{
+  "success": boolean,
+  "message": "string",
+  "data": {
+    "conversationId": "string"
+  }
+}
+```
+
+---
+
+### Notifications
+
+#### 1. Notifications Fetch URL
 **Pole**: `notificationsFetchURL`
 **Opis**: URL do pobierania powiadomień
 **Method**: POST
@@ -133,7 +232,7 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 
 ---
 
-### 6. Notification Status URL
+#### 2. Notification Status URL
 **Pole**: `notificationStatusURL`
 **Opis**: URL do aktualizacji statusu powiadomienia (oznaczenie jako przeczytane/usunięte)
 **Method**: POST
@@ -145,7 +244,6 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
   "timestamp": "ISO8601 timestamp"
 }
 ```
-
 **Response Format**: JSON
 ```json
 {
@@ -156,11 +254,12 @@ Dokument opisuje strukturę URL-i i API dla komunikacji aplikacji AllyHub z zewn
 
 ---
 
-### 7. Actions Fetch URL
+### Actions
+
+### 1. Actions Fetch URL
 **Pole**: `actionsFetchURL`
 **Opis**: URL do pobierania akcji do wykonania
 **Method**: POST
-
 **Response Format**: JSON
 ```json
 {

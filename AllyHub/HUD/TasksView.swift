@@ -6,33 +6,185 @@ struct TasksView: View {
     @ObservedObject var timerModel: TimerModel
     @ObservedObject var actionsManager: ActionsManager
     @ObservedObject var communicationSettings: CommunicationSettings
+    @ObservedObject var taskCreationSettings: TaskCreationSettings
+    @Binding var showingTaskCreationOptions: Bool
     @AppStorage("activeTaskId") private var activeTaskId: String?
     @State private var expandedStatusSections: Set<String> = ["todo", "inprogress"] // Default expanded
+    @State private var showingTaskFormView = false
+    @State private var showingScreenRecorderView = false
+    @State private var showingInlineTaskForm = false
+    @State private var inlineTaskTitle = ""
+    @State private var inlineTaskDescription = ""
+    @State private var inlineTaskIsSubmitting = false
+    @State private var inlineTaskErrorMessage: String?
+    @State private var showingInlineAudioRecorder = false
+    @State private var inlineAudioTaskSubmitted = false
+    @StateObject private var inlineAudioManager = AudioRecorderManager()
+    @StateObject private var inlineUploadService = FileUploadService()
+    
+    // Inline screen recording state
+    @State private var showingInlineScreenRecorder = false
+    @State private var inlineScreenTaskSubmitted = false
+    @State private var inlineScreenManager: ScreenRecorderManager?
+    @StateObject private var inlineScreenUploadService = FileUploadService()
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                if tasksManager.tasks.isEmpty {
-                    emptyStateView
-                } else {
-                    // Active task section at top (if any)
-                    if let activeTask = tasksManager.tasks.first(where: { $0.id == activeTaskId }) {
-                        activeTaskSection(activeTask)
-                    } else {
-                        // Clear activeTaskId if the task no longer exists
-                        if activeTaskId != nil {
-                            let _ = { activeTaskId = nil }()
+        VStack(spacing: 0) {
+            // Task creation options (shown when + is clicked)
+            if showingTaskCreationOptions {
+                HStack(spacing: 16) {
+                    // Form button
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingTaskCreationOptions = false
+                            showingInlineTaskForm = true
+                        }
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "doc.text.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.green)
+                                .clipShape(Circle())
+                            Text("Form")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.8))
                         }
                     }
+                    .buttonStyle(.plain)
                     
-                    // Task sections grouped by status
-                    ForEach(groupedTaskStatuses, id: \.self) { status in
-                        taskStatusSection(status: status)
+                    // Microphone button
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingTaskCreationOptions = false
+                            showingInlineAudioRecorder = true
+                        }
+                        // Start recording immediately
+                        inlineAudioTaskSubmitted = false // Reset flag for new recording
+                        inlineAudioManager.startRecording()
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.orange)
+                                .clipShape(Circle())
+                            Text("Audio")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Screen recording button
+                    Button(action: {
+                        // Initialize screen manager if needed (macOS 12.3+)
+                        if #available(macOS 12.3, *) {
+                            if inlineScreenManager == nil {
+                                inlineScreenManager = ScreenRecorderManager()
+                            }
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showingTaskCreationOptions = false
+                                showingInlineScreenRecorder = true
+                            }
+                            // Start screen recording immediately
+                            inlineScreenTaskSubmitted = false // Reset flag for new recording
+                            inlineScreenManager?.startRecording()
+                        } else {
+                            // Fallback for older macOS - use sheet
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showingTaskCreationOptions = false
+                                showingScreenRecorderView = true
+                            }
+                        }
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "record.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.purple)
+                                .clipShape(Circle())
+                            Text("Screen")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 12)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            VStack(spacing: 0) {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        if tasksManager.tasks.isEmpty {
+                            emptyStateView
+                        } else {
+                            // Active task section at top (if any)
+                            if let activeTask = tasksManager.tasks.first(where: { $0.id == activeTaskId }) {
+                                activeTaskSection(activeTask)
+                            } else {
+                                // Clear activeTaskId if the task no longer exists
+                                if activeTaskId != nil {
+                                    let _ = { activeTaskId = nil }()
+                                }
+                            }
+                            
+                            // Task sections grouped by status
+                            ForEach(groupedTaskStatuses, id: \.self) { status in
+                                taskStatusSection(status: status)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, showingInlineTaskForm || showingInlineAudioRecorder || showingInlineScreenRecorder ? 120 : 0) // Add bottom padding when form is shown
+                }
+                
+                // Inline task form at bottom
+                if showingInlineTaskForm {
+                    inlineTaskFormView
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                
+                // Inline audio recorder at bottom
+                if showingInlineAudioRecorder {
+                    inlineAudioRecorderView
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                
+                // Inline screen recorder at bottom
+                if showingInlineScreenRecorder {
+                    if #available(macOS 12.3, *) {
+                        inlineScreenRecorderView
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else {
+                        // Fallback for older macOS
+                        Text("Screen recording requires macOS 12.3+")
+                            .foregroundStyle(.orange)
+                            .padding()
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
+        }
+        .sheet(isPresented: $showingTaskFormView) {
+            TaskFormView(onTaskCreated: { task in
+                addTaskToSystem(task)
+            }, communicationSettings: communicationSettings)
+        }
+        .sheet(isPresented: $showingScreenRecorderView) {
+            if #available(macOS 12.3, *) {
+                ScreenRecorderView(onTaskCreated: { task in
+                    addTaskToSystem(task)
+                }, communicationSettings: communicationSettings)
+            } else {
+                ScreenRecorderFallbackView()
+            }
         }
     }
     
@@ -186,6 +338,351 @@ struct TasksView: View {
         }
     }
     
+    private var inlineTaskFormView: some View {
+        VStack(spacing: 12) {
+            // Header
+            HStack {
+                Text("Create Task")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingInlineTaskForm = false
+                    }
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // Form fields
+            VStack(spacing: 8) {
+                // Title field
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Title")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                    
+                    TextField("Enter task title", text: $inlineTaskTitle)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(6)
+                }
+                
+                // Description field
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Description")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                    
+                    TextEditor(text: $inlineTaskDescription)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(6)
+                        .frame(minHeight: 60, maxHeight: 80)
+                }
+                
+            }
+            
+            // Submit button
+            Button(action: submitInlineTask) {
+                HStack(spacing: 8) {
+                    if inlineTaskIsSubmitting {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12))
+                        Text("Create Task")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(canSubmitInlineTask ? Color.blue.opacity(0.7) : Color.gray.opacity(0.3))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSubmitInlineTask || inlineTaskIsSubmitting)
+            
+            // Error message
+            if let errorMessage = inlineTaskErrorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+        .background(Color.black.opacity(0.4))
+    }
+    
+    private var inlineAudioRecorderView: some View {
+        VStack(spacing: 12) {
+            // Header
+            HStack {
+                Text("Record Audio Task")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingInlineAudioRecorder = false
+                        inlineAudioTaskSubmitted = false // Reset flag when closing
+                        // Stop recording if in progress
+                        if inlineAudioManager.isRecording {
+                            inlineAudioManager.stopRecording()
+                        }
+                    }
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // Recording interface
+            VStack(spacing: 12) {
+                // Status text
+                Text(getRecordingStatusText())
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                
+                // Recording controls
+                HStack(spacing: 16) {
+                    // Stop recording button (only show stop when recording)
+                    if inlineAudioManager.isRecording {
+                        Button(action: {
+                            inlineAudioManager.stopRecording()
+                        }) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 40))
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // Timer and progress
+                    if inlineAudioManager.isRecording {
+                        VStack(spacing: 4) {
+                            Text(formatTime(inlineAudioManager.recordingTime))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white)
+                            
+                            // Simple audio level indicator
+                            Rectangle()
+                                .fill(.green)
+                                .frame(width: CGFloat(inlineAudioManager.audioLevels) * 60, height: 4)
+                                .cornerRadius(2)
+                                .frame(width: 60, alignment: .leading)
+                                .background(Color.white.opacity(0.2))
+                                .cornerRadius(2)
+                        }
+                    }
+                }
+                
+                // Show transcription when ready
+                if !inlineAudioManager.transcription.isEmpty {
+                    Text("Transcription: \(inlineAudioManager.transcription)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .padding(8)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(6)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                // Show upload progress
+                if inlineUploadService.isUploading {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.8)
+                        Text("Creating task...")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+        .background(Color.black.opacity(0.4))
+        .onReceive(inlineAudioManager.$transcription) { transcription in
+            // Auto-submit when transcription is ready (only once)
+            if !transcription.isEmpty && !inlineAudioManager.isTranscribing && !inlineAudioTaskSubmitted {
+                inlineAudioTaskSubmitted = true
+                Task {
+                    await autoSubmitAudioTask()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Inline Screen Recorder View
+    
+    @available(macOS 12.3, *)
+    private var inlineScreenRecorderView: some View {
+        VStack(spacing: 12) {
+            // Header
+            HStack {
+                Text("Record Screen Task")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingInlineScreenRecorder = false
+                        inlineScreenTaskSubmitted = false // Reset flag when closing
+                        // Stop recording if in progress
+                        if inlineScreenManager?.isRecording ?? false {
+                            inlineScreenManager?.stopRecording()
+                        }
+                    }
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .frame(width: 24, height: 24)
+                        .background(.white.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // Recording status and controls
+            VStack(spacing: 12) {
+                // Recording status indicator
+                HStack(spacing: 8) {
+                    // Recording indicator
+                    Circle()
+                        .fill(.red)
+                        .frame(width: 8, height: 8)
+                        .opacity((inlineScreenManager?.isRecording ?? false) ? 1 : 0.3)
+                        .scaleEffect((inlineScreenManager?.isRecording ?? false) ? 1.2 : 1.0)
+                        .animation(
+                            (inlineScreenManager?.isRecording ?? false) ? 
+                            .easeInOut(duration: 0.8).repeatForever(autoreverses: true) : 
+                            .easeInOut(duration: 0.2), 
+                            value: inlineScreenManager?.isRecording ?? false
+                        )
+                    
+                    Text(getScreenRecordingStatusText())
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.8))
+                    
+                    Spacer()
+                    
+                    // Timer
+                    Text(formatScreenTime(inlineScreenManager?.recordingTime ?? 0))
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                }
+                
+                // Recording mode info
+                HStack(spacing: 8) {
+                    Image(systemName: "display")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.purple)
+                    
+                    Text(inlineScreenManager?.recordingMode.displayName ?? "Screen")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.7))
+                    
+                    Spacer()
+                    
+                    // Quality indicator
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 6, height: 6)
+                        
+                        Text("1080p")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.green)
+                    }
+                }
+                
+                // Control buttons
+                HStack(spacing: 12) {
+                    // Stop recording button (only show when recording)
+                    if inlineScreenManager?.isRecording ?? false {
+                        Button(action: {
+                            inlineScreenManager?.stopRecording()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "stop.circle.fill")
+                                    .font(.system(size: 16))
+                                Text("Stop Recording")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.red.opacity(0.8))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    Spacer()
+                }
+                
+                // Error message
+                if let error = inlineScreenManager?.errorMessage {
+                    Text(error)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.red.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+        .animation(.easeInOut(duration: 0.3), value: inlineScreenManager?.isRecording ?? false)
+        .onReceive(NotificationCenter.default.publisher(for: .screenRecordingFinished)) { _ in
+            // Auto-submit task when screen recording finishes
+            if !inlineScreenTaskSubmitted {
+                Task {
+                    await submitInlineScreenTask()
+                }
+            }
+        }
+    }
+    
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle")
@@ -230,16 +727,13 @@ struct TasksView: View {
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
-        let dateValue: String
         let timestampValue: String
         
         if action == "start" {
-            // For start: use current date and timestamp
-            dateValue = dateFormatter.string(from: currentDate)
+            // For start: use current timestamp
             timestampValue = dateFormatter.string(from: currentDate)
         } else {
-            // For stop: use current date but timestamp should reflect elapsed time
-            dateValue = dateFormatter.string(from: currentDate)
+            // For stop: timestamp should reflect elapsed time
             let elapsedSeconds = timerModel.elapsedTime
             let elapsedDate = Date(timeIntervalSince1970: elapsedSeconds)
             timestampValue = dateFormatter.string(from: elapsedDate)
@@ -275,6 +769,401 @@ struct TasksView: View {
         actionsManager.executeAction(timerAction, parameters: parameters)
         print("📤 Action executed")
     }
+    
+    
+    private func addTaskToSystem(_ task: TaskItem) {
+        print("✅ Adding task to system: \(task.title)")
+        
+        // Add to TasksManager
+        tasksManager.tasks.append(task)
+        
+        // Optionally set as active task
+        if tasksManager.tasks.count == 1 {
+            activeTaskId = task.id
+        }
+        
+        print("📊 Total tasks: \(tasksManager.tasks.count)")
+    }
+    
+    // MARK: - Inline Task Form Helpers
+    
+    private var canSubmitInlineTask: Bool {
+        !inlineTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
+    private func submitInlineTask() {
+        guard canSubmitInlineTask else { return }
+        
+        inlineTaskIsSubmitting = true
+        inlineTaskErrorMessage = nil
+        
+        Task {
+            await submitTaskToAPI()
+        }
+    }
+    
+    private func submitTaskToAPI() async {
+        let taskData = InlineTaskData(
+            type: "form",
+            title: inlineTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines),
+            description: inlineTaskDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+            due_date: nil
+        )
+        
+        do {
+            let jsonData = try JSONEncoder().encode(taskData)
+            
+            guard !communicationSettings.taskCreateURL.isEmpty else {
+                await MainActor.run {
+                    createLocalTask()
+                }
+                return
+            }
+            
+            let result = await sendTaskToServer(taskData: jsonData)
+            
+            await MainActor.run {
+                inlineTaskIsSubmitting = false
+                
+                if result.success {
+                    // Reset form on success
+                    inlineTaskTitle = ""
+                    inlineTaskDescription = ""
+                    inlineTaskErrorMessage = nil
+                    
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingInlineTaskForm = false
+                    }
+                } else {
+                    // Show error message
+                    inlineTaskErrorMessage = result.error ?? "Failed to create task"
+                }
+            }
+            
+            // Wait 2 seconds after successful creation, then fetch tasks
+            if result.success {
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                await MainActor.run {
+                    tasksManager.fetchTasks()
+                }
+            }
+        } catch {
+            await MainActor.run {
+                inlineTaskIsSubmitting = false
+                inlineTaskErrorMessage = "Failed to encode task data"
+            }
+        }
+    }
+    
+    private func sendTaskToServer(taskData: Data) async -> InlineTaskSubmissionResult {
+        guard let url = URL(string: communicationSettings.taskCreateURL) else {
+            return InlineTaskSubmissionResult(success: false, error: "Invalid API URL")
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = taskData
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return InlineTaskSubmissionResult(success: false, error: "Invalid response")
+            }
+            
+            if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+                // Try to parse JSON response
+                do {
+                    let apiResponse = try JSONDecoder().decode(TaskCreateResponse.self, from: data)
+                    
+                    if apiResponse.success {
+                        return InlineTaskSubmissionResult(success: true, taskData: apiResponse.data)
+                    } else {
+                        return InlineTaskSubmissionResult(success: false, error: apiResponse.message)
+                    }
+                } catch {
+                    // Fallback: if JSON parsing fails but HTTP status is success, assume success
+                    return InlineTaskSubmissionResult(success: true)
+                }
+            } else {
+                // Try to parse error response
+                do {
+                    let apiResponse = try JSONDecoder().decode(TaskCreateResponse.self, from: data)
+                    return InlineTaskSubmissionResult(success: false, error: apiResponse.message)
+                } catch {
+                    let errorMessage = "Server returned status code: \(httpResponse.statusCode)"
+                    return InlineTaskSubmissionResult(success: false, error: errorMessage)
+                }
+            }
+        } catch {
+            return InlineTaskSubmissionResult(success: false, error: "Network error: \(error.localizedDescription)")
+        }
+    }
+    
+    private func createLocalTask() {
+        let task = TaskItem(
+            title: inlineTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines),
+            description: inlineTaskDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+            status: .todo,
+            priority: .medium,
+            isCompleted: false,
+            dueDate: nil,
+            createdAt: Date(),
+            url: nil,
+            apiId: UUID().uuidString,
+            tags: [],
+            creationType: .form,
+            audioUrl: nil,
+            transcription: nil
+        )
+        
+        addTaskToSystem(task)
+        
+        // Reset form
+        inlineTaskTitle = ""
+        inlineTaskDescription = ""
+        inlineTaskErrorMessage = nil
+        
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showingInlineTaskForm = false
+        }
+    }
+    
+    // MARK: - Inline Audio Recorder Helpers
+    
+    private func getRecordingStatusText() -> String {
+        if inlineAudioManager.isRecording {
+            return "Recording... Tap stop when finished"
+        } else if inlineAudioManager.isTranscribing {
+            return "Processing audio and creating transcription..."
+        } else if !inlineAudioManager.transcription.isEmpty {
+            return "Transcription ready! Auto-creating task..."
+        } else {
+            return "Tap record button to start"
+        }
+    }
+    
+    private func autoSubmitAudioTask() async {
+        guard let audioURL = inlineAudioManager.recordingURL else {
+            return
+        }
+        
+        // Create metadata with auto-generated title from transcription
+        let transcriptionText = inlineAudioManager.transcription
+        let autoTitle = generateTitleFromTranscription(transcriptionText)
+        
+        let metadata = AudioUploadMetadata(
+            title: autoTitle,
+            description: transcriptionText,
+            transcription: transcriptionText,
+            duration: inlineAudioManager.recordingTime
+        )
+        
+        // Upload to server if endpoint is configured
+        if !communicationSettings.taskCreateURL.isEmpty {
+            let result = await inlineUploadService.uploadAudioRecording(
+                from: audioURL,
+                to: communicationSettings.taskCreateURL,
+                withMetadata: metadata
+            )
+            
+            await MainActor.run {
+                if result.isSuccess {
+                    // Success - close the recorder and refresh tasks
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingInlineAudioRecorder = false
+                    }
+                    
+                    // Wait 2 seconds then fetch tasks
+                    Task {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        await MainActor.run {
+                            tasksManager.fetchTasks()
+                        }
+                    }
+                } else {
+                    // Upload failed - create local task as fallback
+                    createLocalAudioTask(metadata: metadata, audioURL: audioURL)
+                }
+            }
+        } else {
+            // No API endpoint - create local task
+            await MainActor.run {
+                createLocalAudioTask(metadata: metadata, audioURL: audioURL)
+            }
+        }
+    }
+    
+    private func createLocalAudioTask(metadata: AudioUploadMetadata, audioURL: URL) {
+        let task = TaskItem(
+            title: metadata.title,
+            description: metadata.description,
+            status: .todo,
+            priority: .medium,
+            isCompleted: false,
+            dueDate: nil,
+            createdAt: Date(),
+            url: nil,
+            apiId: UUID().uuidString,
+            tags: [],
+            creationType: .microphone,
+            audioUrl: audioURL.path,
+            transcription: metadata.transcription?.content
+        )
+        
+        addTaskToSystem(task)
+        
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showingInlineAudioRecorder = false
+        }
+    }
+    
+    private func generateTitleFromTranscription(_ transcription: String) -> String {
+        // Take first sentence or first 50 characters as title
+        let words = transcription.components(separatedBy: .whitespacesAndNewlines)
+        let filteredWords = words.filter { !$0.isEmpty }
+        
+        if filteredWords.isEmpty {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return "Audio Task \(formatter.string(from: Date()))"
+        }
+        
+        // Take up to 8 words or until first sentence end
+        var titleWords: [String] = []
+        for word in filteredWords.prefix(8) {
+            titleWords.append(word)
+            if word.hasSuffix(".") || word.hasSuffix("!") || word.hasSuffix("?") {
+                break
+            }
+        }
+        
+        let title = titleWords.joined(separator: " ")
+        return title.count > 50 ? String(title.prefix(47)) + "..." : title
+    }
+    
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        let milliseconds = Int((time * 100).truncatingRemainder(dividingBy: 100))
+        return String(format: "%02d:%02d.%02d", minutes, seconds, milliseconds)
+    }
+    
+    // MARK: - Screen Recording Helpers
+    
+    private func getScreenRecordingStatusText() -> String {
+        if inlineScreenManager?.isRecording ?? false {
+            return "Recording screen... Click stop when finished"
+        } else if inlineScreenTaskSubmitted {
+            return "Processing recording and uploading..."
+        } else {
+            return "Screen recording ready"
+        }
+    }
+    
+    private func formatScreenTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    @available(macOS 12.3, *)
+    private func submitInlineScreenTask() async {
+        guard !inlineScreenTaskSubmitted,
+              let screenManager = inlineScreenManager,
+              let videoURL = screenManager.recordingURL else {
+            return
+        }
+        
+        inlineScreenTaskSubmitted = true
+        
+        // Create task with screen recording info
+        let taskTitle = "Screen recording \(Date().formatted(date: .abbreviated, time: .shortened))"
+        let taskDescription = "Screen recording captured using \(screenManager.recordingMode.displayName) mode"
+        
+        // Create upload metadata using the same structure as ScreenRecorderView
+        let metadata = ScreenUploadMetadata(
+            title: taskTitle,
+            description: taskDescription
+        )
+        
+        // Get upload endpoint from CommunicationSettings
+        let uploadEndpoint = communicationSettings.taskCreateURL
+        
+        // Use FileUploadService for consistent multipart/form-data upload
+        let result = await inlineScreenUploadService.uploadScreenRecording(
+            from: videoURL,
+            to: uploadEndpoint,
+            withMetadata: metadata
+        )
+        
+        await MainActor.run {
+            if result.isSuccess {
+                // Success - close the recorder and refresh tasks
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showingInlineScreenRecorder = false
+                }
+                
+                // Wait 2 seconds then fetch tasks
+                Task {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    await MainActor.run {
+                        tasksManager.fetchTasks()
+                    }
+                }
+                
+                print("✅ Inline screen recording task submitted successfully via FileUploadService")
+            } else {
+                print("❌ Failed to submit inline screen recording task: \(result.error ?? "Unknown error")")
+                inlineScreenManager?.errorMessage = result.error
+            }
+        }
+    }
+}
+
+// MARK: - Extensions
+
+extension TaskPriority {
+    var displayName: String {
+        switch self {
+        case .high: return "High"
+        case .medium: return "Medium"
+        case .low: return "Low"
+        }
+    }
+}
+
+// MARK: - Data Models
+
+struct InlineTaskData: Codable {
+    let type: String
+    let title: String
+    let description: String
+    let due_date: String?
+}
+
+struct InlineTaskSubmissionResult {
+    let success: Bool
+    let error: String?
+    let taskData: TaskCreateResponseData?
+    
+    init(success: Bool, error: String? = nil, taskData: TaskCreateResponseData? = nil) {
+        self.success = success
+        self.error = error
+        self.taskData = taskData
+    }
+}
+
+struct TaskCreateResponse: Codable {
+    let success: Bool
+    let message: String
+    let data: TaskCreateResponseData?
+}
+
+struct TaskCreateResponseData: Codable {
+    let id: String
+    let url: String
 }
 
 // Active task view - shown at top with play/pause controls
@@ -553,60 +1442,4 @@ struct TaskItemView: View {
             return .white.opacity(0.7)
         }
     }
-}
-
-// MARK: - Task Data Models
-
-struct TaskItem: Identifiable, Equatable {
-    var id: String { apiId ?? title }
-    var title: String
-    var description: String
-    var status: TaskStatus
-    var priority: TaskPriority
-    var isCompleted: Bool
-    var dueDate: Date?
-    var createdAt: Date?
-    var url: String?
-    var apiId: String?
-    var tags: [String]
-    
-    init(title: String, description: String, status: TaskStatus, priority: TaskPriority, isCompleted: Bool, dueDate: Date? = nil, createdAt: Date? = nil, url: String? = nil, apiId: String? = nil, tags: [String] = []) {
-        self.title = title
-        self.description = description
-        self.status = status
-        self.priority = priority
-        self.isCompleted = isCompleted
-        self.dueDate = dueDate
-        self.createdAt = createdAt
-        self.url = url
-        self.apiId = apiId
-        self.tags = tags
-    }
-    
-    static func == (lhs: TaskItem, rhs: TaskItem) -> Bool {
-        return lhs.id == rhs.id &&
-               lhs.title == rhs.title &&
-               lhs.description == rhs.description &&
-               lhs.isCompleted == rhs.isCompleted &&
-               lhs.status == rhs.status &&
-               lhs.priority == rhs.priority
-    }
-}
-
-enum TaskStatus: String, CaseIterable {
-    case todo = "todo"
-    case inprogress = "inprogress"
-    
-    var displayName: String {
-        switch self {
-        case .todo: return "To Do"
-        case .inprogress: return "In Progress"
-        }
-    }
-}
-
-enum TaskPriority: String, CaseIterable {
-    case high = "high"
-    case medium = "medium"
-    case low = "low"
 }

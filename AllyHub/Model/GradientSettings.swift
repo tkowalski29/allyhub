@@ -433,3 +433,51 @@ class KeyboardShortcutsSettings: ObservableObject {
         return false
     }
 }
+
+// MARK: - TaskCreationSettings
+
+@MainActor
+final class TaskCreationSettings: ObservableObject {
+    @Published var floatingPanelDefaultAction: FloatingPanelAction = .microphone
+    
+    enum FloatingPanelAction: String, CaseIterable, Identifiable {
+        case microphone = "microphone"
+        case screen = "screen"
+        
+        var id: String { rawValue }
+        
+        var displayName: String {
+            switch self {
+            case .microphone: return "Record Audio"
+            case .screen: return "Record Screen"
+            }
+        }
+        
+        var iconName: String {
+            switch self {
+            case .microphone: return "mic.fill"
+            case .screen: return "display"
+            }
+        }
+    }
+    
+    init() {
+        loadSettings()
+    }
+    
+    private func loadSettings() {
+        if let savedAction = UserDefaults.standard.string(forKey: "AllyHub.FloatingPanelAction"),
+           let action = FloatingPanelAction(rawValue: savedAction) {
+            floatingPanelDefaultAction = action
+        }
+    }
+    
+    func saveSettings() {
+        UserDefaults.standard.set(floatingPanelDefaultAction.rawValue, forKey: "AllyHub.FloatingPanelAction")
+    }
+    
+    func setFloatingPanelAction(_ action: FloatingPanelAction) {
+        floatingPanelDefaultAction = action
+        saveSettings()
+    }
+}

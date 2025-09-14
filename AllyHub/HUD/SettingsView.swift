@@ -4,6 +4,7 @@ struct SettingsView: View {
     @ObservedObject var communicationSettings: CommunicationSettings
     @ObservedObject var gradientSettings: GradientSettings
     @ObservedObject var keyboardShortcutsSettings: KeyboardShortcutsSettings
+    @ObservedObject var taskCreationSettings: TaskCreationSettings
     
     @State private var chatAccordionExpanded = false
     @State private var tasksAccordionExpanded = false
@@ -759,6 +760,36 @@ struct SettingsView: View {
                 placeholder: "Enter URL to create new tasks",
                 value: $communicationSettings.taskCreateURL
             )
+            
+            // Floating panel action setting
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Floating Panel + Button")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+                
+                Picker("Default Action", selection: $taskCreationSettings.floatingPanelDefaultAction) {
+                    ForEach(TaskCreationSettings.FloatingPanelAction.allCases, id: \.self) { action in
+                        HStack {
+                            Image(systemName: action.iconName)
+                                .foregroundStyle(.white)
+                            Text(action.displayName)
+                                .foregroundStyle(.white)
+                        }
+                        .tag(action)
+                    }
+                }
+                .pickerStyle(.menu)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                )
+            }
         }
     }
     
