@@ -54,6 +54,9 @@ struct TasksView: View {
                             showingTaskCreationOptions = false
                             showingInlineAudioRecorder = true
                         }
+                        // Start recording immediately
+                        inlineAudioTaskSubmitted = false // Reset flag for new recording
+                        inlineAudioManager.startRecording()
                     }) {
                         VStack(spacing: 4) {
                             Image(systemName: "mic.fill")
@@ -431,20 +434,17 @@ struct TasksView: View {
                 
                 // Recording controls
                 HStack(spacing: 16) {
-                    // Record button
-                    Button(action: {
-                        if inlineAudioManager.isRecording {
+                    // Stop recording button (only show stop when recording)
+                    if inlineAudioManager.isRecording {
+                        Button(action: {
                             inlineAudioManager.stopRecording()
-                        } else {
-                            inlineAudioTaskSubmitted = false // Reset flag for new recording
-                            inlineAudioManager.startRecording()
+                        }) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 40))
+                                .foregroundStyle(.red)
                         }
-                    }) {
-                        Image(systemName: inlineAudioManager.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(inlineAudioManager.isRecording ? .red : .blue)
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                     
                     // Timer and progress
                     if inlineAudioManager.isRecording {

@@ -30,6 +30,16 @@ final class AudioRecorderManager: NSObject, ObservableObject, AVAudioRecorderDel
     func startRecording() {
         guard !isRecording else { return }
         
+        // On macOS 13.0+, we simply attempt to start recording
+        // The system will automatically prompt for microphone permissions if needed
+        Task {
+            await performRecording()
+        }
+    }
+    
+    private func performRecording() async {
+        guard !isRecording else { return }
+        
         // Create temporary file URL
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let audioURL = documentsPath.appendingPathComponent("recording_\(Date().timeIntervalSince1970).m4a")
