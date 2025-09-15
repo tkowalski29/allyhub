@@ -429,28 +429,38 @@ struct SettingsView: View {
                         .cornerRadius(4)
                 }
                 
-                HStack(spacing: 8) {
-                    // 5 min button
-                    Button("5 min") {
-                        communicationSettings.notificationsRefreshInterval = 5
-                        communicationSettings.saveSettings()
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("5 min")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                        Spacer()
+                        Text("\(communicationSettings.notificationsRefreshInterval) min")
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .fontWeight(.medium)
+                        Spacer()
+                        Text("15 min")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
                     }
-                    .buttonStyle(RefreshIntervalButtonStyle(isSelected: communicationSettings.notificationsRefreshInterval == 5))
                     
-                    // 10 min button  
-                    Button("10 min") {
-                        communicationSettings.notificationsRefreshInterval = 10
-                        communicationSettings.saveSettings()
-                    }
-                    .buttonStyle(RefreshIntervalButtonStyle(isSelected: communicationSettings.notificationsRefreshInterval == 10))
-                    
-                    // 15 min button
-                    Button("15 min") {
-                        communicationSettings.notificationsRefreshInterval = 15
-                        communicationSettings.saveSettings()
-                    }
-                    .buttonStyle(RefreshIntervalButtonStyle(isSelected: communicationSettings.notificationsRefreshInterval == 15))
+                    Slider(
+                        value: Binding(
+                            get: { Double(communicationSettings.notificationsRefreshInterval) },
+                            set: { newValue in
+                                let roundedValue = Int(round(newValue / 5) * 5) // Round to nearest 5
+                                let clampedValue = max(5, min(15, roundedValue)) // Clamp between 5-15
+                                communicationSettings.notificationsRefreshInterval = clampedValue
+                                communicationSettings.saveSettings()
+                            }
+                        ),
+                        in: 5...15,
+                        step: 5
+                    )
+                    .accentColor(.white)
                 }
+                .padding(.horizontal, 4)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
@@ -774,6 +784,71 @@ struct SettingsView: View {
                 placeholder: "Enter URL to create new tasks",
                 value: $communicationSettings.taskCreateURL
             )
+            
+            // Tasks refresh interval setting
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.8))
+                    
+                    Text("Auto Refresh Interval")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                    
+                    Spacer()
+                    
+                    Text("\(communicationSettings.tasksRefreshInterval) min")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(4)
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("5 min")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                        Spacer()
+                        Text("\(communicationSettings.tasksRefreshInterval) min")
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .fontWeight(.medium)
+                        Spacer()
+                        Text("15 min")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    
+                    Slider(
+                        value: Binding(
+                            get: { Double(communicationSettings.tasksRefreshInterval) },
+                            set: { newValue in
+                                let roundedValue = Int(round(newValue / 5) * 5) // Round to nearest 5
+                                let clampedValue = max(5, min(15, roundedValue)) // Clamp between 5-15
+                                communicationSettings.tasksRefreshInterval = clampedValue
+                                communicationSettings.saveSettings()
+                            }
+                        ),
+                        in: 5...15,
+                        step: 5
+                    )
+                    .accentColor(.white)
+                }
+                .padding(.horizontal, 4)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             
             // Floating panel action setting
             VStack(alignment: .leading, spacing: 8) {

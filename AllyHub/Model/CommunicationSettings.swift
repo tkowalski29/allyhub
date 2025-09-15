@@ -15,6 +15,7 @@ final class CommunicationSettings: ObservableObject {
     @Published var notificationsFetchURL: String = ""
     @Published var notificationStatusURL: String = ""
     @Published var notificationsRefreshInterval: Int = 10 // minutes
+    @Published var tasksRefreshInterval: Int = 10 // minutes
     @Published var actionsFetchURL: String = ""
     
     init() {
@@ -35,6 +36,7 @@ final class CommunicationSettings: ObservableObject {
         notificationsFetchURL = UserDefaults.standard.string(forKey: "AllyHub.NotificationsFetchURL") ?? ""
         notificationStatusURL = UserDefaults.standard.string(forKey: "AllyHub.NotificationStatusURL") ?? ""
         notificationsRefreshInterval = UserDefaults.standard.object(forKey: "AllyHub.NotificationsRefreshInterval") as? Int ?? 10
+        tasksRefreshInterval = UserDefaults.standard.object(forKey: "AllyHub.TasksRefreshInterval") as? Int ?? 10
         actionsFetchURL = UserDefaults.standard.string(forKey: "AllyHub.ActionsFetchURL") ?? ""
     }
     
@@ -52,6 +54,7 @@ final class CommunicationSettings: ObservableObject {
         UserDefaults.standard.set(notificationsFetchURL, forKey: "AllyHub.NotificationsFetchURL")
         UserDefaults.standard.set(notificationStatusURL, forKey: "AllyHub.NotificationStatusURL")
         UserDefaults.standard.set(notificationsRefreshInterval, forKey: "AllyHub.NotificationsRefreshInterval")
+        UserDefaults.standard.set(tasksRefreshInterval, forKey: "AllyHub.TasksRefreshInterval")
         UserDefaults.standard.set(actionsFetchURL, forKey: "AllyHub.ActionsFetchURL")
     }
     
