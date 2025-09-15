@@ -8,12 +8,12 @@
 - [x] time tracker
 - [x] dodawanie taska (api)
 - [x] dyktowanie taska (api + wisper)
-- [ ] nagrywanie ekranu i dzwieku oraz mikrofonu
 - [x] notyfikacje
 - [x] wyswietlanie nowej notyfikacji 
 - [x] akcje (wysylanie akcji get / post)
 - [x] sterowanie szerokoscia
 - [x] skroty klawiszowe
+- [ ] tworzenie taska -> nagrywanie ekranu i dzwieku oraz mikrofonu
 - [ ] albo logujesz sie do AllyHub Center albo podpinasz webhooki recznie 
 - [ ] budowanie automatyczne paczki w github workflows
 - [ ] platnosci subskrypcja
