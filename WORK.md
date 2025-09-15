@@ -24,27 +24,27 @@
 - [x] mechanizmy cachowania danych aby nie było ciaglego pobierania
 - [x] globalne skróty
 
-### Akcje
+### Chat
 
-- [x] na liscie action brakuje informacji o pliku (po najechaniu)
-- [x] lista pol nie ciagnie sie względem realnej odpowiedzi z api
-- [x] napis select file na środku
-- [ ] kolory w madalu
-
-### Notyfikacje
-
-- [x] w notyfikacjach ciagle jest jakies jedno powiadomienie
+- [ ] ladowanie domyslne danego watku + zapis w cache 
 
 ### Taski
 
 - [x] dodac priorytet w api
 - [x] dodac informacje o due data i ilosci dni jakie zostaly
 - [x] na floating mozliwosc przelaczenia na inny task w postaci boxa pod floating
-- [ ] kolory w madalu
+- [x] kolory w madalu
 
-### Chat
+### Notyfikacje
 
-- [ ] ladowanie domyslne danego watku + zapis w cache 
+- [x] w notyfikacjach ciagle jest jakies jedno powiadomienie
+
+### Akcje
+
+- [x] na liscie action brakuje informacji o pliku (po najechaniu)
+- [x] lista pol nie ciagnie sie względem realnej odpowiedzi z api
+- [x] napis select file na środku
+- [x] kolory w madalu
 
 ## EXAMPLES
 

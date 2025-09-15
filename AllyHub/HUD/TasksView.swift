@@ -368,14 +368,26 @@ struct TasksView: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white)
                     
-                    TextField("Enter task title", text: $inlineTaskTitle)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(6)
+                    ZStack(alignment: .leading) {
+                        // Custom white placeholder
+                        if inlineTaskTitle.isEmpty {
+                            Text("Enter task title")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .allowsHitTesting(false)
+                        }
+                        
+                        TextField("", text: $inlineTaskTitle)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                    }
+                    .background(Color.white.opacity(0.1))
+                    .cornerRadius(6)
                 }
                 
                 // Description field
@@ -384,13 +396,27 @@ struct TasksView: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white)
                     
-                    TextEditor(text: $inlineTaskDescription)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white)
-                        .scrollContentBackground(.hidden)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(6)
-                        .frame(minHeight: 60, maxHeight: 80)
+                    ZStack(alignment: .topLeading) {
+                        // Custom white placeholder
+                        if inlineTaskDescription.isEmpty {
+                            Text("Enter task description")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .allowsHitTesting(false)
+                        }
+                        
+                        TextEditor(text: $inlineTaskDescription)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white)
+                            .scrollContentBackground(.hidden)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                    }
+                    .background(Color.white.opacity(0.1))
+                    .cornerRadius(6)
+                    .frame(minHeight: 60, maxHeight: 80)
                 }
                 
             }
@@ -1228,9 +1254,9 @@ struct ActiveTaskItemView: View {
                         NSWorkspace.shared.open(url)
                     }) {
                         Image(systemName: "link")
-                            .font(.system(size: 14))
+                            .font(.caption)
                             .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
+                            .frame(width: 24, height: 24)
                             .background(Color.purple)
                             .clipShape(Circle())
                     }
@@ -1240,9 +1266,9 @@ struct ActiveTaskItemView: View {
                 // Complete/Close button - third, green checkmark in circle
                 Button(action: onCompleteTask) {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 12))
+                        .font(.caption)
                         .foregroundStyle(.white)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 24, height: 24)
                         .background(Color.green)
                         .clipShape(Circle())
                 }

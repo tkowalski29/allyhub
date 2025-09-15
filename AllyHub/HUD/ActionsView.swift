@@ -254,20 +254,39 @@ struct ActionsView: View {
                             }
                             .buttonStyle(.plain)
                         } else {
-                            TextField(parameter.placeholder, text: Binding(
-                                get: { 
-                                    if case .string(let value) = parameterValues[key] {
-                                        return value
-                                    }
-                                    return ""
-                                },
-                                set: { parameterValues[key] = .string($0) }
-                            ))
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            ZStack(alignment: .leading) {
+                                // Custom white placeholder
+                                if case .string(let value) = parameterValues[key], value.isEmpty {
+                                    Text(parameter.placeholder)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .allowsHitTesting(false)
+                                } else if parameterValues[key] == nil {
+                                    Text(parameter.placeholder)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .allowsHitTesting(false)
+                                }
+                                
+                                TextField("", text: Binding(
+                                    get: { 
+                                        if case .string(let value) = parameterValues[key] {
+                                            return value
+                                        }
+                                        return ""
+                                    },
+                                    set: { parameterValues[key] = .string($0) }
+                                ))
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                            }
                             .background(Color.white.opacity(0.1))
                             .cornerRadius(6)
                         }
