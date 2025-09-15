@@ -40,3 +40,12 @@
 ### Chat
 
 - [ ] 
+
+## EXAMPLES
+
+- [x] wgrywanie faktur
+- [x] uruchamianie codegen
+- [x] tworzenie taskow
+- [ ] rozmowa z AI 
+- [x] notyfikacja w piatki ze Oscar szybciej konczy
+- [ ] nagrywanie rozmowy google meet
