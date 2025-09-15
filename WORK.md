@@ -14,6 +14,7 @@
 - [x] akcje (wysylanie akcji get / post)
 - [x] sterowanie szerokoscia
 - [x] skroty klawiszowe
+- [ ] albo logujesz sie do AllyHub Center albo podpinasz webhooki recznie 
 
 ## OTHERS AND BUGS
 
@@ -29,7 +30,7 @@
 
 ### Notyfikacje
 
-- [ ] w notyfikacjach ciagle jest jakies jedno powiadomienie
+- [x] w notyfikacjach ciagle jest jakies jedno powiadomienie
 
 ### Taski
 

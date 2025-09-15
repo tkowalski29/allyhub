@@ -72,24 +72,45 @@ class NotificationsManager: ObservableObject {
                 
                 print("📦 [NotificationsManager] Received \(data.count) bytes of data")
                 
-                do {
-                    // First try to decode as array containing structured response
-                    if let arrayResponse = try? JSONDecoder().decode([NotificationsResponse].self, from: data),
-                       let firstResponse = arrayResponse.first {
-                        print("✅ [NotificationsManager] Decoded as array containing structured response")
-                        self.processNotificationsResponse(firstResponse)
-                    } else if let directResponse = try? JSONDecoder().decode(NotificationsResponse.self, from: data) {
-                        // Fallback: try to decode as direct structured response
-                        print("✅ [NotificationsManager] Decoded as direct structured response")
-                        self.processNotificationsResponse(directResponse)
-                    } else {
-                        // Final fallback: try to decode as direct array of notifications
-                        print("✅ [NotificationsManager] Decoded as direct array of notifications")
-                        let apiNotifications = try JSONDecoder().decode([APINotification].self, from: data)
-                        self.processNotificationsArray(apiNotifications)
+                // Handle completely empty response (0 bytes)
+                if data.count == 0 {
+                    print("✅ [NotificationsManager] Server returned empty response - this is normal")
+                    self.notifications = []
+                    self.unreadNotificationsCount = 0
+                    return
+                }
+                
+                // First try to decode as array containing structured response
+                if let arrayResponse = try? JSONDecoder().decode([NotificationsResponse].self, from: data),
+                   let firstResponse = arrayResponse.first {
+                    print("✅ [NotificationsManager] Decoded as array containing structured response")
+                    self.processNotificationsResponse(firstResponse)
+                } else if let directResponse = try? JSONDecoder().decode(NotificationsResponse.self, from: data) {
+                    // Fallback: try to decode as direct structured response
+                    print("✅ [NotificationsManager] Decoded as direct structured response")
+                    self.processNotificationsResponse(directResponse)
+                } else if let apiNotifications = try? JSONDecoder().decode([APINotification].self, from: data) {
+                    // Final fallback: try to decode as direct array of notifications
+                    print("✅ [NotificationsManager] Decoded as direct array of notifications")
+                    self.processNotificationsArray(apiNotifications)
+                } else {
+                    // Check if it's a valid but empty response
+                    if let jsonString = String(data: data, encoding: .utf8) {
+                        print("📝 [NotificationsManager] Raw response: \(jsonString)")
+                        
+                        // Check for empty array or empty response patterns
+                        let trimmedResponse = jsonString.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if trimmedResponse == "[]" || 
+                           trimmedResponse.contains("\"collection\":[]") ||
+                           trimmedResponse.contains("\"count\":0") {
+                            print("✅ [NotificationsManager] Server returned empty notifications - this is normal")
+                            self.notifications = []
+                            self.unreadNotificationsCount = 0
+                            return
+                        }
                     }
-                } catch {
-                    print("Failed to decode notifications response: \(error)")
+                    
+                    print("❌ [NotificationsManager] Failed to decode notifications response - invalid format")
                     let fallbackNotification = NotificationItem(
                         title: "System",
                         message: "Failed to load notifications from server. Using fallback data.",
