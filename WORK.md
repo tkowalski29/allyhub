@@ -15,6 +15,8 @@
 - [x] sterowanie szerokoscia
 - [x] skroty klawiszowe
 - [ ] albo logujesz sie do AllyHub Center albo podpinasz webhooki recznie 
+- [ ] budowanie automatyczne paczki w github workflows
+- [ ] platnosci subskrypcja
 
 ## OTHERS AND BUGS
 
@@ -24,9 +26,9 @@
 
 ### Akcje
 
-- [ ] na liscie action brakuje informacji o pliku (po najechaniu)
+- [x] na liscie action brakuje informacji o pliku (po najechaniu)
 - [ ] lista pol nie ciagnie sie względem realnej odpowiedzi z api
-- [ ] select file na środku
+- [ ] napis select file na środku
 
 ### Notyfikacje
 
