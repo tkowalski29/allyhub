@@ -121,7 +121,11 @@ struct ActionsView: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.8))
                     
-                    ForEach(Array(action.parameters.keys.sorted()), id: \.self) { key in
+                    ForEach(Array(action.parameters.keys.sorted(by: { key1, key2 in
+                        let param1 = action.parameters[key1]!
+                        let param2 = action.parameters[key2]!
+                        return param1.order < param2.order
+                    })), id: \.self) { key in
                         let parameter = action.parameters[key]!
                         HStack {
                             Text(key)
@@ -182,7 +186,11 @@ struct ActionsView: View {
             
             // Parameters
             VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(action.parameters.keys.sorted()), id: \.self) { key in
+                ForEach(Array(action.parameters.keys.sorted(by: { key1, key2 in
+                    let param1 = action.parameters[key1]!
+                    let param2 = action.parameters[key2]!
+                    return param1.order < param2.order
+                })), id: \.self) { key in
                     let parameter = action.parameters[key]!
                     
                     VStack(alignment: .leading, spacing: 6) {

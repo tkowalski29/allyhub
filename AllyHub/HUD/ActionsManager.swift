@@ -266,7 +266,8 @@ class ActionsManager: ObservableObject {
                     convertedParameters[key] = ActionParameter(
                         type: apiParam.type,
                         placeholder: apiParam.placeholder,
-                        options: apiParam.options
+                        options: apiParam.options,
+                        order: apiParam.order ?? 0
                     )
                 }
             }
@@ -298,7 +299,8 @@ class ActionsManager: ObservableObject {
                     convertedParameters[key] = ActionParameter(
                         type: apiParam.type,
                         placeholder: apiParam.placeholder,
-                        options: apiParam.options
+                        options: apiParam.options,
+                        order: apiParam.order ?? 0
                     )
                 }
             }
@@ -320,55 +322,8 @@ class ActionsManager: ObservableObject {
     }
     
     private func createFallbackActions() {
-        let fallbackActions = [
-            ActionItem(
-                id: "test_action_1",
-                title: "Send Message",
-                message: "Send a message to the system",
-                url: "https://example.com/api/message",
-                method: "POST",
-                parameters: [
-                    "message": ActionParameter(type: "string", placeholder: "Enter your message")
-                ]
-            ),
-            ActionItem(
-                id: "test_action_2", 
-                title: "Update Status",
-                message: "Update your current status",
-                url: "https://example.com/api/status",
-                method: "POST",
-                parameters: [
-                    "status": ActionParameter(type: "select", placeholder: "Select status", options: [
-                        "online": "Online",
-                        "away": "Away", 
-                        "busy": "Busy",
-                        "offline": "Offline"
-                    ])
-                ]
-            ),
-            ActionItem(
-                id: "test_action_3",
-                title: "Upload File",
-                message: "Upload a file with description",
-                url: "https://example.com/api/upload",
-                method: "POST",
-                parameters: [
-                    "description": ActionParameter(type: "string", placeholder: "File description"),
-                    "file": ActionParameter(type: "file", placeholder: "Choose file to upload")
-                ]
-            ),
-            ActionItem(
-                id: "test_action_4",
-                title: "Quick Action",
-                message: "Execute a quick action without parameters",
-                url: "https://example.com/api/quick",
-                method: "POST",
-                parameters: [:]
-            )
-        ]
-        
-        actions = fallbackActions
-        print("Using fallback actions")
+        actions = []
+        print("No actions available - API fetch failed")
     }
     
     private func showActionResponse(_ response: ActionResponse) {
@@ -397,11 +352,13 @@ struct ActionParameter {
     let type: String // "string", "select", or "file"
     let placeholder: String
     let options: [String: String]? // For select type
+    let order: Int // For ordering parameters
     
-    init(type: String, placeholder: String, options: [String: String]? = nil) {
+    init(type: String, placeholder: String, options: [String: String]? = nil, order: Int = 0) {
         self.type = type
         self.placeholder = placeholder
         self.options = options
+        self.order = order
     }
 }
 
@@ -435,4 +392,5 @@ struct APIActionParameter: Codable {
     let type: String
     let placeholder: String
     let options: [String: String]?
+    let order: Int?
 }

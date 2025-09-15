@@ -272,14 +272,17 @@ Content-Type: audio/mp4
       "message": "string",
       "parameters": {
         "name": {
+          "order": 1,
           "type": "string",
           "placeholder": "string"
         },
         "file": {
+          "order": 2,
           "type": "file",
           "placeholder": "string"
         },
         "class": {
+          "order": 3,
           "type": "select",
           "placeholder": "string",
           "options": {

@@ -27,7 +27,7 @@
 ### Akcje
 
 - [x] na liscie action brakuje informacji o pliku (po najechaniu)
-- [ ] lista pol nie ciagnie sie względem realnej odpowiedzi z api
+- [x] lista pol nie ciagnie sie względem realnej odpowiedzi z api
 - [ ] napis select file na środku
 
 ### Notyfikacje
