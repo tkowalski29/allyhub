@@ -1,4 +1,4 @@
-## TODO
+## FEATURES
 
 - [x] zmiana nazwy
 - [x] chat
