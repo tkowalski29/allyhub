@@ -35,6 +35,7 @@ struct HUDView: View {
     @State private var chatMessage: String = ""
     @State private var isSendingChatMessage = false
     @State private var lastChatResponse: String?
+    @State private var showingTaskList = false
     
     // Inline recording state
     @State private var showingInlineAudioRecorder = false
@@ -142,6 +143,17 @@ struct HUDView: View {
                     Spacer()
                         .frame(height: 44) // Height of compact view
                     chatResponseBox
+                        .frame(width: gradientSettings.windowSize.width)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            // Task list positioned absolutely below the panel (for tasks mode)
+            if !isExpanded && gradientSettings.compactBarMode == .tasks && showingTaskList {
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: 44) // Height of compact view
+                    taskListBox
                         .frame(width: gradientSettings.windowSize.width)
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -413,6 +425,21 @@ struct HUDView: View {
                                     .foregroundColor(.white)
                                     .frame(width: 28, height: 28)
                                     .background(Color.white.opacity(0.2))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            
+                            // Task list button (only in tasks mode)
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showingTaskList.toggle()
+                                }
+                            }) {
+                                Image(systemName: "list.bullet")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.blue.opacity(0.6))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(.plain)
@@ -1371,6 +1398,76 @@ struct HUDView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
+        }
+        .frame(maxWidth: gradientSettings.windowSize.width)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.black.opacity(0.3),
+                            Color.black.opacity(0.2)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 6)
+        .padding(.top, 4)
+    }
+    
+    // MARK: - Task List Box
+    private var taskListBox: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(tasksManager.tasks, id: \.id) { task in
+                        HStack(spacing: 8) {
+                            // Active indicator
+                            Circle()
+                                .fill(task.id == activeTaskId ? Color.green : Color.gray.opacity(0.3))
+                                .frame(width: 8, height: 8)
+                            
+                            // Task title
+                            Text(task.title)
+                                .font(.system(size: 11))
+                                .foregroundColor(task.id == activeTaskId ? .white : .white.opacity(0.8))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                activeTaskId = task.id
+                                showingTaskList = false
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                
+                Button(action: {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        showingTaskList = false
+                    }
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(width: 16, height: 16)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
         .frame(maxWidth: gradientSettings.windowSize.width)
         .background(
