@@ -356,28 +356,26 @@ struct ActionsView: View {
 // MARK: - File Picker Extension
 extension ActionsView {
     var filePickerView: some View {
-        Button("Select File") {
-            showingFilePicker = true
-        }
-        .fileImporter(
-            isPresented: $showingFilePicker,
-            allowedContentTypes: [.data, .image, .text, .pdf, .audio, .video],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let files):
-                if let fileURL = files.first, let key = currentFileParameterKey {
-                    // Start accessing security-scoped resource
-                    if fileURL.startAccessingSecurityScopedResource() {
-                        parameterValues[key] = .file(fileURL)
-                        // Note: In a real app, you might want to copy the file to a temporary location
-                        // and call stopAccessingSecurityScopedResource() after use
+        EmptyView()
+            .fileImporter(
+                isPresented: $showingFilePicker,
+                allowedContentTypes: [.data, .image, .text, .pdf, .audio, .video],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let files):
+                    if let fileURL = files.first, let key = currentFileParameterKey {
+                        // Start accessing security-scoped resource
+                        if fileURL.startAccessingSecurityScopedResource() {
+                            parameterValues[key] = .file(fileURL)
+                            // Note: In a real app, you might want to copy the file to a temporary location
+                            // and call stopAccessingSecurityScopedResource() after use
+                        }
                     }
+                case .failure(let error):
+                    print("File picker error: \(error)")
                 }
-            case .failure(let error):
-                print("File picker error: \(error)")
+                currentFileParameterKey = nil
             }
-            currentFileParameterKey = nil
-        }
     }
 }
