@@ -142,17 +142,9 @@ final class FloatingPanel: NSPanel {
         print("📍 Toggle Panel: \(keyboardShortcutsSettings.togglePanelShortcut.displayName)")
         print("📍 Next Tab: \(keyboardShortcutsSettings.nextTabShortcut.displayName)")
         
-        // Create a local event monitor for keyboard shortcuts
-        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            print("📝 Local event monitor triggered")
-            return self?.handleKeyboardShortcut(event) ?? event
-        }
-        
-        // Create a global event monitor for keyboard shortcuts
-        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            print("🌍 Global event monitor triggered")
-            _ = self?.handleKeyboardShortcut(event)
-        }
+        // Skip local/global monitoring - AppDelegate handles all keyboard shortcuts
+        // This prevents conflicts between FloatingPanel and AppDelegate monitors
+        print("🚨 FloatingPanel: Skipping event monitors to prevent conflicts with AppDelegate")
         
         print("✅ Keyboard shortcuts setup complete")
         print("🎫 Local monitor: \(localEventMonitor != nil)")
@@ -160,34 +152,10 @@ final class FloatingPanel: NSPanel {
     }
     
     private func handleKeyboardShortcut(_ event: NSEvent) -> NSEvent? {
-        let keyCode = Int(event.keyCode)
-        let modifierFlags = event.modifierFlags
-        
-        // Debug: Print all key events
-        print("🔍 Key event: keyCode=\(keyCode), modifiers=\(modifierFlags)")
-        print("🎯 Looking for: keyCode=\(keyboardShortcutsSettings.togglePanelShortcut.key.keyCode), modifiers=\(keyboardShortcutsSettings.togglePanelShortcut.modifiers.flags)")
-        
-        // Check toggle panel shortcut
-        if keyCode == keyboardShortcutsSettings.togglePanelShortcut.key.keyCode &&
-           modifierFlags.intersection([.command, .option, .control, .shift]) == keyboardShortcutsSettings.togglePanelShortcut.modifiers.flags {
-            print("✅ Toggle panel shortcut matched!")
-            DispatchQueue.main.async { [weak self] in
-                self?.toggleExpansion()
-            }
-            return nil // Consume the event
-        }
-        
-        // Check next tab shortcut (only when expanded)
-        if isExpanded &&
-           keyCode == keyboardShortcutsSettings.nextTabShortcut.key.keyCode &&
-           modifierFlags.intersection([.command, .option, .control, .shift]) == keyboardShortcutsSettings.nextTabShortcut.modifiers.flags {
-            DispatchQueue.main.async { [weak self] in
-                self?.nextTab()
-            }
-            return nil // Consume the event
-        }
-        
-        return event // Don't consume the event
+        // FloatingPanel no longer handles keyboard shortcuts directly
+        // All shortcuts are handled by AppDelegate to prevent conflicts
+        print("🔍 FloatingPanel: Event passed to AppDelegate")
+        return event // Pass through to AppDelegate
     }
     
     private func nextTab() {
@@ -392,6 +360,10 @@ extension FloatingPanel {
     
     var isCompact: Bool {
         return !isExpanded
+    }
+    
+    var expansionState: Bool {
+        return isExpanded
     }
     
     func setExpanded(_ expanded: Bool, animated: Bool = true) {

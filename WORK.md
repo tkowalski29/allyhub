@@ -13,7 +13,7 @@
 - [x] akcje (wysylanie akcji get / post)
 - [x] sterowanie szerokoscia
 - [x] skroty klawiszowe
-- [ ] kalendarz ??
+- [x] budowanie przez MakeFile
 - [ ] tworzenie taska -> nagrywanie ekranu i dzwieku oraz mikrofonu
 - [ ] albo logujesz sie do AllyHub Center albo podpinasz webhooki recznie 
 - [ ] budowanie automatyczne paczki w github workflows
@@ -22,14 +22,14 @@
 ## OTHERS AND BUGS
 
 - [x] mechanizmy cachowania danych aby nie było ciaglego pobierania
-- [ ] dark mode
-- [ ] globalne skróty
+- [x] globalne skróty
 
 ### Akcje
 
 - [x] na liscie action brakuje informacji o pliku (po najechaniu)
 - [x] lista pol nie ciagnie sie względem realnej odpowiedzi z api
 - [x] napis select file na środku
+- [ ] kolory w madalu
 
 ### Notyfikacje
 
@@ -40,10 +40,11 @@
 - [x] dodac priorytet w api
 - [x] dodac informacje o due data i ilosci dni jakie zostaly
 - [x] na floating mozliwosc przelaczenia na inny task w postaci boxa pod floating
+- [ ] kolory w madalu
 
 ### Chat
 
-- [ ] 
+- [ ] ladowanie domyslne danego watku + zapis w cache 
 
 ## EXAMPLES
 

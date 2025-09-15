@@ -15,7 +15,7 @@ struct SettingsView: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 chatAccordion
                 tasksAccordion
                 notificationsAccordion
@@ -23,7 +23,8 @@ struct SettingsView: View {
                 keyboardShortcutsAccordion
                 appearanceAccordion
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
         .scrollIndicators(.never)
     }
@@ -52,8 +53,8 @@ struct SettingsView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(Color.white.opacity(0.1))
                 .cornerRadius(8)
             }
@@ -61,8 +62,8 @@ struct SettingsView: View {
             
             if keyboardShortcutsAccordionExpanded {
                 keyboardShortcutsSettingsView
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
                     .background(Color.white.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .transition(.slide.combined(with: .opacity))
@@ -71,7 +72,7 @@ struct SettingsView: View {
     }
     
     private var keyboardShortcutsSettingsView: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Accessibility permissions notice
             accessibilityPermissionsView
             
@@ -100,20 +101,20 @@ struct SettingsView: View {
     @State private var showingAccessibilityAlert = false
     
     private var accessibilityPermissionsView: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
-                    .font(.system(size: 16))
+                    .font(.system(size: 14))
                 
                 Text("Global Shortcuts Permissions")
-                    .font(.subheadline)
+                    .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.white)
             }
             
-            Text("For global keyboard shortcuts to work, AllyHub needs Accessibility permissions.")
-                .font(.caption)
+            Text("Accessibility permissions required for global shortcuts.")
+                .font(.caption2)
                 .foregroundStyle(.white.opacity(0.7))
                 .fixedSize(horizontal: false, vertical: true)
             
@@ -121,25 +122,26 @@ struct SettingsView: View {
                 showAccessibilityPreferences()
             }
             .foregroundStyle(.white)
+            .font(.caption)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
             .background(
-                LinearGradient(
-                    colors: [Color.orange.opacity(0.7), Color.orange.opacity(0.5)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                Color.blue.opacity(0.6)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(.white.opacity(0.2), lineWidth: 1)
+            )
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(Color.orange.opacity(0.1))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.08))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.orange.opacity(0.25), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
         .alert("Accessibility Permissions Required", isPresented: $showingAccessibilityAlert) {
             Button("Open System Preferences") {
                 showAccessibilityPreferences()
@@ -162,34 +164,34 @@ struct SettingsView: View {
         shortcut: KeyboardShortcutsSettings.KeyboardShortcut,
         onUpdate: @escaping (KeyboardShortcutsSettings.Key, Set<KeyboardShortcutsSettings.Modifier>) -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.white)
                 
                 Text(description)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.white.opacity(0.7))
             }
             
-            VStack(spacing: 12) {
+            HStack(spacing: 8) {
                 // Current shortcut display
                 Text(shortcut.displayName)
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.white.opacity(0.1))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.08))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
                 
-                // Change button with Execute button styling
-                Menu("Change Shortcut") {
+                // Change button with app gradient styling
+                Menu("Change") {
                     // Modifier combinations
                     ForEach(modifierCombinations, id: \.self) { modifiers in
                         Menu(modifierDisplayName(modifiers)) {
@@ -202,26 +204,27 @@ struct SettingsView: View {
                     }
                 }
                 .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
                 .background(
-                    LinearGradient(
-                        colors: [Color.blue.opacity(0.7), Color.blue.opacity(0.5)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+                    Color.blue.opacity(0.6)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                )
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(Color.white.opacity(0.05))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.03))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
     
     // Helper computed properties for keyboard shortcuts
@@ -282,8 +285,8 @@ struct SettingsView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(Color.white.opacity(0.1))
                 .cornerRadius(8)
             }
@@ -291,8 +294,8 @@ struct SettingsView: View {
             
             if chatAccordionExpanded {
                 chatSettingsView
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
                     .background(Color.white.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .transition(.slide.combined(with: .opacity))
@@ -387,8 +390,8 @@ struct SettingsView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(Color.white.opacity(0.1))
                 .cornerRadius(8)
             }
@@ -396,8 +399,8 @@ struct SettingsView: View {
             
             if notificationsAccordionExpanded {
                 notificationsSettingsView
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
                     .background(Color.white.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .transition(.slide.combined(with: .opacity))
@@ -512,8 +515,8 @@ struct SettingsView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(Color.white.opacity(0.1))
                 .cornerRadius(8)
             }
@@ -521,8 +524,8 @@ struct SettingsView: View {
             
             if actionsAccordionExpanded {
                 actionsSettingsView
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
                     .background(Color.white.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .transition(.slide.combined(with: .opacity))
@@ -565,8 +568,8 @@ struct SettingsView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(Color.white.opacity(0.1))
                 .cornerRadius(8)
             }
@@ -574,8 +577,8 @@ struct SettingsView: View {
             
             if appearanceAccordionExpanded {
                 appearanceSettings
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
                     .background(Color.white.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .transition(.slide.combined(with: .opacity))
@@ -584,7 +587,7 @@ struct SettingsView: View {
     }
     
     private var appearanceSettings: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 12) {
             gradientThemeSection
             transparencySection
             windowSizeSection
@@ -593,27 +596,27 @@ struct SettingsView: View {
     }
     
     private var gradientThemeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Gradient Theme")
-                .font(.subheadline)
+                .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.white)
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
                 ForEach(GradientSettings.GradientType.allCases) { gradientType in
                     Button(action: {
                         gradientSettings.setGradient(gradientType)
                     }) {
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 6)
                             .fill(gradientType.gradient)
-                            .frame(height: 50)
+                            .frame(height: 40)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(gradientSettings.selectedGradient == gradientType ? .white : .clear, lineWidth: 2)
                             )
                             .overlay(
                                 Text(gradientType.name)
-                                    .font(.caption)
+                                    .font(.caption2)
                                     .foregroundStyle(.white)
                                     .fontWeight(.medium)
                             )
@@ -711,37 +714,39 @@ struct SettingsView: View {
     }
     
     private func compactBarModeButton(mode: GradientSettings.CompactBarMode) -> some View {
-        Button(action: {
+        let isSelected = gradientSettings.compactBarMode == mode
+        
+        return Button(action: {
             gradientSettings.setCompactBarMode(mode)
         }) {
-            VStack(spacing: 8) {
-                Image(systemName: gradientSettings.compactBarMode == mode ? "largecircle.fill.circle" : "circle")
-                    .font(.system(size: 12))
+            VStack(spacing: 6) {
+                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 10))
                     .foregroundStyle(.white)
                 
                 Image(systemName: mode.iconName)
-                    .font(.system(size: 24))
+                    .font(.system(size: 20))
                     .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(Color.white.opacity(0.15))
+                    .frame(width: 32, height: 32)
+                    .background(isSelected ? Color.blue.opacity(0.3) : Color.white.opacity(0.1))
                     .clipShape(Circle())
                 
                 Text(mode.rawValue)
-                    .font(.caption)
+                    .font(.caption2)
                     .fontWeight(.medium)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
             .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(gradientSettings.compactBarMode == mode ? 
-                         Color.white.opacity(0.1) : Color.white.opacity(0.05))
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected ? 
+                         Color.blue.opacity(0.08) : Color.clear)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 6)
                             .stroke(gradientSettings.compactBarMode == mode ? 
-                                   Color.white.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
+                                   Color.white.opacity(0.1) : Color.clear, lineWidth: 1)
                     )
             )
         }
@@ -849,8 +854,8 @@ struct SettingsView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(Color.white.opacity(0.1))
                 .cornerRadius(8)
             }
@@ -858,8 +863,8 @@ struct SettingsView: View {
             
             if tasksAccordionExpanded {
                 tasksSettingsView
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
                     .background(Color.white.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .transition(.slide.combined(with: .opacity))
@@ -1011,37 +1016,39 @@ struct SettingsView: View {
     }
     
     private func floatingPanelActionButton(action: TaskCreationSettings.FloatingPanelAction) -> some View {
-        Button(action: {
+        let isSelected = taskCreationSettings.floatingPanelDefaultAction == action
+        
+        return Button(action: {
             taskCreationSettings.setFloatingPanelAction(action)
         }) {
-            VStack(spacing: 8) {
-                Image(systemName: taskCreationSettings.floatingPanelDefaultAction == action ? "largecircle.fill.circle" : "circle")
-                    .font(.system(size: 12))
+            VStack(spacing: 6) {
+                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 10))
                     .foregroundStyle(.white)
                 
                 Image(systemName: action.iconName)
                     .font(.system(size: 20))
                     .foregroundStyle(.white)
                     .frame(width: 32, height: 32)
-                    .background(Color.white.opacity(0.15))
+                    .background(isSelected ? Color.blue.opacity(0.3) : Color.white.opacity(0.1))
                     .clipShape(Circle())
                 
                 Text(action.displayName)
-                    .font(.caption)
+                    .font(.caption2)
                     .fontWeight(.medium)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
             .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(taskCreationSettings.floatingPanelDefaultAction == action ? 
-                         Color.white.opacity(0.1) : Color.white.opacity(0.05))
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected ? 
+                         Color.blue.opacity(0.08) : Color.clear)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 6)
                             .stroke(taskCreationSettings.floatingPanelDefaultAction == action ? 
-                                   Color.white.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
+                                   Color.white.opacity(0.1) : Color.clear, lineWidth: 1)
                     )
             )
         }

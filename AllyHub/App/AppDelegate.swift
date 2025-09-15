@@ -1,5 +1,6 @@
 import Cocoa
 import SwiftUI
+import ApplicationServices
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -110,6 +111,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func setupKeyboardShortcuts() {
+        // Set up global keyboard shortcut monitoring
+        setupGlobalKeyboardShortcuts()
+        
         // Add menu item with keyboard shortcut for testing
         let mainMenu = NSApplication.shared.mainMenu
         if let appMenu = mainMenu?.items.first?.submenu {
@@ -125,25 +129,211 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
+    private var globalEventMonitor: Any?
+    private var localEventMonitor: Any?
+    
+    private func setupGlobalKeyboardShortcuts() {
+        // Remove existing monitors if any
+        if let monitor = globalEventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        if let monitor = localEventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        
+        print("🌍 Setting up global keyboard shortcuts...")
+        print("📍 Toggle Panel: \(keyboardShortcutsSettings.togglePanelShortcut.displayName)")
+        
+        // Skip automatic permission check - will be done from Settings
+        
+        // Warn about potentially conflicting shortcuts
+        let shortcut = keyboardShortcutsSettings.togglePanelShortcut
+        if shortcut.key == .a && shortcut.modifiers == [.control] {
+            print("⚠️ WARNING: Control+A conflicts with 'Select All' in most apps")
+            print("💡 Consider using Control+Shift+A (⌃⇧A) or Control+Option+A (⌃⌥A) instead")
+        } else if shortcut.key == .a && shortcut.modifiers == [.control, .option] {
+            print("✅ Good choice: Control+Option+A (⌃⌥A) is a safe shortcut")
+        } else if shortcut.key == .a && shortcut.modifiers == [.control, .shift] {
+            print("✅ Good choice: Control+Shift+A (⌃⇧A) is a safe shortcut")
+        }
+        
+        // Create a local event monitor to consume events when app is focused
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
+            return self?.handleKeyboardShortcut(event)
+        }
+        
+        // Create a global event monitor for when app is not focused
+        // Global monitors have lower priority, so we need to be more aggressive
+        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
+            _ = self?.handleKeyboardShortcut(event)
+        }
+        
+        print("✅ Global keyboard shortcuts setup complete")
+        print("🎫 Local monitor: \(localEventMonitor != nil)")
+        print("🌍 Global monitor: \(globalEventMonitor != nil)")
+        if checkAccessibilityPermissions() {
+            print("🔐 Accessibility permissions: ✅ Granted")
+        } else {
+            print("🔐 Accessibility permissions: ❌ Not granted (configure in Settings)")
+        }
+    }
+    
+    private func handleKeyboardShortcut(_ event: NSEvent) -> NSEvent? {
+        // Only process keyDown events for shortcuts
+        guard event.type == .keyDown else {
+            return event
+        }
+        
+        // Debug: Check if app is active
+        let isAppActive = NSApp.isActive
+        print("🔍 Event received - App active: \(isAppActive)")
+        
+        let keyCode = Int(event.keyCode)
+        let modifierFlags = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        
+        let expectedKeyCode = keyboardShortcutsSettings.togglePanelShortcut.key.keyCode
+        let expectedModifiers = keyboardShortcutsSettings.togglePanelShortcut.modifiers.flags
+        
+        // Debug logging with more details
+        let keyName = keyboardShortcutsSettings.togglePanelShortcut.key.displayName
+        let modifierNames = keyboardShortcutsSettings.togglePanelShortcut.modifiers.map { $0.displayName }.joined()
+        
+        // More detailed debug info
+        let currentApp = NSWorkspace.shared.frontmostApplication?.localizedName ?? "Unknown"
+        print("🔍 Key event from '\(currentApp)': keyCode=\(keyCode), modifiers=\(modifierFlags.rawValue), appActive=\(isAppActive)")
+        print("🎯 Expected: keyCode=\(expectedKeyCode), modifiers=\(expectedModifiers.rawValue)")
+        
+        // Check toggle panel shortcut with exact matching
+        if keyCode == expectedKeyCode && modifierFlags == expectedModifiers {
+            
+            print("✅ Toggle panel shortcut matched! (\(modifierNames)\(keyName)) from \(currentApp)")
+            
+            // Use higher priority dispatch
+            DispatchQueue.main.async {
+                // Force app to front when toggling
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                self.toggleHUDExpansion()
+            }
+            
+            return nil // Consume the event to prevent other apps from handling it
+        }
+        
+        // Check next tab shortcut (only when panel is expanded)
+        let nextTabKeyCode = keyboardShortcutsSettings.nextTabShortcut.key.keyCode
+        let nextTabModifiers = keyboardShortcutsSettings.nextTabShortcut.modifiers.flags
+        
+        if keyCode == nextTabKeyCode && modifierFlags == nextTabModifiers {
+            guard let panel = floatingPanel, panel.expansionState else {
+                print("🚫 Next tab shortcut ignored - panel not expanded")
+                return event
+            }
+            
+            let nextTabNames = keyboardShortcutsSettings.nextTabShortcut.modifiers.map { $0.displayName }.joined()
+            let nextTabKeyName = keyboardShortcutsSettings.nextTabShortcut.key.displayName
+            print("✅ Next tab shortcut matched! (\(nextTabNames)\(nextTabKeyName)) from \(currentApp)")
+            
+            DispatchQueue.main.async {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                // Notify HUDView to switch to next tab
+                NotificationCenter.default.post(name: .nextTabKeyboardShortcut, object: nil)
+            }
+            
+            return nil // Consume the event
+        }
+        
+        return event // Don't consume the event
+    }
+    
+    // MARK: - Accessibility Permissions
+    
+    private func checkAccessibilityPermissions() -> Bool {
+        return AXIsProcessTrusted()
+    }
+    
+    private func requestAccessibilityPermissions() {
+        print("🔐 Requesting accessibility permissions...")
+        
+        // Show alert to user
+        let alert = NSAlert()
+        alert.messageText = "Accessibility Permission Required"
+        alert.informativeText = "AllyHub needs accessibility permissions to monitor global keyboard shortcuts.\n\nClick 'Open System Settings' to grant permission, then restart AllyHub."
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .warning
+        
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            // Request permissions and open System Settings
+            let options: [String: Any] = ["AXTrustedCheckOptionPrompt": true]
+            _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
+            
+            // Open System Settings to Privacy & Security > Accessibility
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+    
     // MARK: - Public Methods
     func showHUD() {
-        floatingPanel?.level = NSWindow.Level(rawValue: 2147483631)  // Force maximum level
-        floatingPanel?.makeKeyAndOrderFront(nil)
-        floatingPanel?.orderFrontRegardless()  // Force to front
+        guard let panel = floatingPanel else { return }
+        
+        print("🎆 Showing HUD with maximum level")
+        
+        // Force maximum window level
+        panel.level = NSWindow.Level(rawValue: 2147483631)
+        
+        // Make sure the panel appears on all spaces
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        
+        // Show the panel
+        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
+        
+        // Double-check the level after showing
+        panel.level = NSWindow.Level(rawValue: 2147483631)
+        
+        print("🎆 HUD shown - level: \(panel.level.rawValue), visible: \(panel.isVisible)")
     }
     
     func hideHUD() {
-        floatingPanel?.orderOut(nil)
+        guard let panel = floatingPanel else { return }
+        
+        print("🙈 Hiding HUD")
+        panel.orderOut(nil)
+        print("🙈 HUD hidden - visible: \(panel.isVisible)")
+    }
+    
+    func toggleHUDExpansion() {
+        guard let panel = floatingPanel else { return }
+        
+        print("🔄 Toggle HUD expansion called - panel visible: \(panel.isVisible), expanded: \(panel.expansionState)")
+        
+        // Always ensure panel is visible first
+        if !panel.isVisible {
+            print("👁️ Showing HUD first")
+            showHUD()
+        }
+        
+        // Toggle between expanded and compact modes
+        print("🔄 Toggling expansion state from \(panel.expansionState) to \(!panel.expansionState)")
+        panel.toggleExpansion()
     }
     
     @objc func toggleHUD() {
         guard let panel = floatingPanel else { return }
         
-        if panel.isVisible {
-            hideHUD()
-        } else {
+        print("🔄 Toggle HUD called - panel visible: \(panel.isVisible), expanded: \(panel.expansionState)")
+        
+        // Always ensure panel is visible first
+        if !panel.isVisible {
+            print("👁️ Showing HUD first")
             showHUD()
         }
+        
+        // Toggle between expanded and compact modes
+        print("🔄 Toggling expansion state")
+        panel.toggleExpansion()
     }
     
     func startTimer() {
@@ -204,6 +394,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func cleanup() {
         // Clean up resources
         NotificationCenter.default.removeObserver(self)
+        
+        // Clean up event monitors
+        if let monitor = globalEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalEventMonitor = nil
+        }
+        if let monitor = localEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            localEventMonitor = nil
+        }
+        
         statusBarController = nil
         floatingPanel = nil
     }

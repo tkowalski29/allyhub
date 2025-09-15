@@ -14,8 +14,6 @@ final class StatusBarController: NSObject {
     
     // Menu items that need to be updated
     private weak var showHideMenuItem: NSMenuItem?
-    private weak var timerMenuItem: NSMenuItem?
-    private weak var taskMenuItem: NSMenuItem?
     
     // MARK: - Initialization
     init(timerModel: TimerModel, tasksModel: TasksModel) {
@@ -39,10 +37,12 @@ final class StatusBarController: NSObject {
         
         // Configure button
         if let button = statusItem.button {
-            // Use a simple text icon as fallback
-            button.title = "⏱ AllyHub"
+            // Use system symbol icon only (no title/text)
+            button.title = ""
+            button.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "AllyHub")
+            button.image?.isTemplate = true  // This makes it white in menu bar
             button.toolTip = "AllyHub - Smart Assistant Hub"
-            print("🔧 Button configured with title: \(button.title ?? "nil")")
+            print("🔧 Button configured with icon only")
             
             // Set up click handling
             button.action = #selector(statusItemClicked(_:))
@@ -59,9 +59,9 @@ final class StatusBarController: NSObject {
     private func setupMenu() {
         menu = NSMenu()
         
-        // Show/Hide HUD
+        // Show/Hide - minimalizuje/wznawia aplikację
         let showHideItem = NSMenuItem(
-            title: "Show HUD",
+            title: "Show",
             action: #selector(toggleHUD),
             keyEquivalent: "h"
         )
@@ -71,115 +71,29 @@ final class StatusBarController: NSObject {
         
         menu?.addItem(NSMenuItem.separator())
         
-        // Timer controls
-        let timerItem = NSMenuItem(
-            title: "Start Timer",
-            action: #selector(toggleTimer),
-            keyEquivalent: "t"
-        )
-        timerItem.target = self
-        timerMenuItem = timerItem
-        menu?.addItem(timerItem)
-        
-        let resetItem = NSMenuItem(
-            title: "Reset Timer",
-            action: #selector(resetTimer),
-            keyEquivalent: "r"
-        )
-        resetItem.target = self
-        menu?.addItem(resetItem)
-        
-        menu?.addItem(NSMenuItem.separator())
-        
-        // Task controls
-        let taskItem = NSMenuItem(
-            title: "Current Task: Loading...",
-            action: nil,
-            keyEquivalent: ""
-        )
-        taskItem.isEnabled = false
-        taskMenuItem = taskItem
-        menu?.addItem(taskItem)
-        
-        let nextTaskItem = NSMenuItem(
-            title: "Next Task",
-            action: #selector(nextTask),
-            keyEquivalent: "n"
-        )
-        nextTaskItem.target = self
-        menu?.addItem(nextTaskItem)
-        
-        menu?.addItem(NSMenuItem.separator())
-        
-        // App controls
-        let quitItem = NSMenuItem(
-            title: "Quit AllyHub",
-            action: #selector(quit),
+        // Close - zamyka aplikację całkowicie
+        let closeItem = NSMenuItem(
+            title: "Close",
+            action: #selector(closeApp),
             keyEquivalent: "q"
         )
-        quitItem.target = self
-        menu?.addItem(quitItem)
+        closeItem.target = self
+        menu?.addItem(closeItem)
         
         statusItem?.menu = menu
     }
     
     private func observeModels() {
-        // Observe timer state changes
-        timerModel.$isRunning
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateStatusItemAppearance()
-                self?.updateMenuItems()
-            }
-            .store(in: &cancellables)
-        
-        timerModel.$elapsedTime
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateStatusItemAppearance()
-            }
-            .store(in: &cancellables)
-        
-        timerModel.$isPaused
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateMenuItems()
-            }
-            .store(in: &cancellables)
-        
-        // Observe task changes
-        tasksModel.$currentTaskIndex
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateMenuItems()
-            }
-            .store(in: &cancellables)
-        
-        tasksModel.$tasks
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateMenuItems()
-            }
-            .store(in: &cancellables)
+        // No longer observing models for simplified menu bar
+        // App visibility changes will be handled directly in toggleHUD
     }
     
     // MARK: - Status Item Updates
     private func updateStatusItemAppearance() {
         guard let button = statusItem?.button else { return }
         
-        // Update icon based on timer state
-        let symbolName: String
-        if timerModel.isCompleted {
-            symbolName = "timer.square"
-        } else if timerModel.isRunning {
-            symbolName = "play.circle.fill"
-        } else if timerModel.isPaused {
-            symbolName = "pause.circle.fill"
-        } else {
-            symbolName = "timer"
-        }
-        
-        button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "AllyHub Timer")
+        // Keep the icon simple and always white
+        button.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "AllyHub")
         button.image?.isTemplate = true
         
         // Update tooltip with current time
@@ -187,36 +101,11 @@ final class StatusBarController: NSObject {
         let status = timerModel.isRunning ? "Running" : timerModel.isPaused ? "Paused" : "Stopped"
         button.toolTip = "AllyHub - \(timeRemaining) (\(status))"
         
-        // Update tint color for visual feedback
-        if timerModel.isRunning {
-            button.contentTintColor = .systemBlue
-        } else if timerModel.isPaused {
-            button.contentTintColor = .systemOrange
-        } else if timerModel.isCompleted {
-            button.contentTintColor = .systemRed
-        } else {
-            button.contentTintColor = .controlAccentColor
-        }
+        // Keep icon white (template image automatically adapts to menu bar)
+        button.contentTintColor = nil
     }
     
-    private func updateMenuItems() {
-        // Update timer menu item
-        if timerModel.isRunning {
-            timerMenuItem?.title = "Pause Timer (\(timerModel.formattedTime))"
-        } else if timerModel.isPaused {
-            timerMenuItem?.title = "Resume Timer (\(timerModel.formattedTime))"
-        } else if timerModel.isCompleted {
-            timerMenuItem?.title = "Timer Completed"
-            timerMenuItem?.isEnabled = false
-        } else {
-            timerMenuItem?.title = "Start Timer (\(timerModel.formattedTime))"
-        }
-        
-        // Update task menu item
-        let currentTask = tasksModel.currentTaskTitle
-        let taskProgress = "\(tasksModel.currentTaskIndex + 1)/\(tasksModel.tasks.count)"
-        taskMenuItem?.title = "Task \(taskProgress): \(currentTask)"
-    }
+    // Removed updateMenuItems - no longer needed for simplified menu
     
     // MARK: - Actions
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
@@ -228,44 +117,47 @@ final class StatusBarController: NSObject {
             statusItem?.menu = menu
             statusItem?.button?.performClick(nil)
         } else {
-            // Left click - toggle HUD
+            // Left click - toggle HUD expansion (not minimize/show)
             delegate?.statusBarControllerDidRequestToggleHUD(self)
         }
     }
     
     @objc private func toggleHUD() {
-        delegate?.statusBarControllerDidRequestToggleHUD(self)
-        updateShowHideMenuItem()
+        // This is called from the menu item - toggle between minimizing and restoring the app
+        if NSApp.isHidden {
+            print("👁️ Restoring app from hidden state")
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.unhide(nil)
+            showHideMenuItem?.title = "Hide"
+        } else {
+            print("🙈 Hiding/minimizing app")
+            NSApp.hide(nil)
+            showHideMenuItem?.title = "Show"
+        }
     }
     
-    @objc private func toggleTimer() {
-        delegate?.statusBarControllerDidRequestToggleTimer(self)
+    @objc private func closeApp() {
+        print("🚪 Closing AllyHub application")
+        NSApp.terminate(nil)
     }
     
-    @objc private func resetTimer() {
-        delegate?.statusBarControllerDidRequestStopTimer(self)
-        // Reset will be handled by the timer model
-        timerModel.reset()
-    }
-    
-    @objc private func nextTask() {
-        tasksModel.nextTask()
-    }
-    
-    @objc private func quit() {
-        delegate?.statusBarControllerDidRequestQuit(self)
-    }
+    // Removed timer and task actions - simplified to show/hide + close
     
     private func updateShowHideMenuItem() {
-        // This would need to be coordinated with AppDelegate to know HUD visibility
-        // For now, we'll keep it simple
-        showHideMenuItem?.title = "Toggle HUD"
+        // Update menu item based on app visibility state
+        showHideMenuItem?.title = NSApp.isHidden ? "Show" : "Hide"
     }
 }
 
 // MARK: - Public Interface
 extension StatusBarController {
     func updateHUDVisibility(_ isVisible: Bool) {
-        showHideMenuItem?.title = isVisible ? "Hide HUD" : "Show HUD"
+        // Update menu item based on app visibility
+        showHideMenuItem?.title = isVisible ? "Hide" : "Show"
+    }
+    
+    func updateAppVisibilityState() {
+        // Called when app becomes active/inactive to update menu item
+        updateShowHideMenuItem()
     }
 }

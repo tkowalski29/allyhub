@@ -331,18 +331,22 @@ struct HUDView: View {
             HStack {
                 if gradientSettings.compactBarMode == .tasks {
                     // Show active task and time when timer is running
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 1) {
                         Text(activeTask?.title ?? "No active task")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(.white)
                             .lineLimit(1)
                             .truncationMode(.tail)
                         
                         if timerModel.isRunning {
                             Text(timerModel.formattedTime)
-                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                                .font(.system(size: 14, weight: .semibold, design: .monospaced))
                                 .foregroundStyle(.white)
                                 .contentTransition(.numericText())
+                        } else {
+                            Text("Stopped")
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundStyle(.white.opacity(0.7))
                         }
                     }
                 } else {
@@ -390,7 +394,7 @@ struct HUDView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 8)
             .contentShape(Rectangle())
             
             // Right section (50%) - Hover area + notification badge
@@ -399,14 +403,14 @@ struct HUDView: View {
                 
                 if isRightSectionHovering && !isChatInputFocused {
                     // Hover controls (expand, timer, and task creation)
-                    HStack(spacing: 8) {
+                    HStack(spacing: 4) {
                         // Expand button
                         Button(action: onExpand) {
                             Image(systemName: isExpanded ? "chevron.left" : "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.white.opacity(0.2))
+                                .frame(width: 20, height: 20)
+                                .background(Color.white.opacity(0.15))
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
@@ -421,10 +425,10 @@ struct HUDView: View {
                                 }
                             }) {
                                 Image(systemName: timerModel.isRunning ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white)
-                                    .frame(width: 28, height: 28)
-                                    .background(Color.white.opacity(0.2))
+                                    .frame(width: 20, height: 20)
+                                    .background(Color.white.opacity(0.15))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(.plain)
@@ -436,10 +440,10 @@ struct HUDView: View {
                                 }
                             }) {
                                 Image(systemName: "list.bullet")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white)
-                                    .frame(width: 28, height: 28)
-                                    .background(Color.blue.opacity(0.6))
+                                    .frame(width: 20, height: 20)
+                                    .background(Color.blue.opacity(0.4))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(.plain)
@@ -450,10 +454,10 @@ struct HUDView: View {
                             handleQuickTaskCreation()
                         }) {
                             Image(systemName: taskCreationSettings.floatingPanelDefaultAction.iconName)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(taskCreationSettings.floatingPanelDefaultAction == .microphone ? Color.orange.opacity(0.8) : Color.purple.opacity(0.8))
+                                .frame(width: 20, height: 20)
+                                .background(taskCreationSettings.floatingPanelDefaultAction == .microphone ? Color.orange.opacity(0.6) : Color.purple.opacity(0.6))
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
@@ -493,14 +497,14 @@ struct HUDView: View {
     private var expandedView: some View {
         VStack(spacing: 16) {
             // New header layout: collapse | tab name | notification count | refresh | close
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 // 1. Collapse button (left)
                 Button(action: onExpand) {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white)
-                        .frame(width: 28, height: 28)
-                        .background(Color.white.opacity(0.2))
+                        .frame(width: 24, height: 24)
+                        .background(Color.white.opacity(0.15))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -533,10 +537,10 @@ struct HUDView: View {
                         }
                     }) {
                         Image(systemName: showingTaskCreationOptions ? "xmark" : "plus")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white)
-                            .frame(width: 28, height: 28)
-                            .background((showingTaskCreationOptions ? Color.red : Color.blue).opacity(0.7))
+                            .frame(width: 24, height: 24)
+                            .background((showingTaskCreationOptions ? Color.red : Color.blue).opacity(0.5))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -548,10 +552,10 @@ struct HUDView: View {
                         chatViewModel.triggerNewConversation()
                     }) {
                         Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white)
-                            .frame(width: 28, height: 28)
-                            .background(Color.blue.opacity(0.7))
+                            .frame(width: 24, height: 24)
+                            .background(Color.blue.opacity(0.5))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -581,10 +585,10 @@ struct HUDView: View {
                         }
                     }) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white)
-                            .frame(width: 28, height: 28)
-                            .background(Color.white.opacity(0.2))
+                            .frame(width: 24, height: 24)
+                            .background(Color.white.opacity(0.15))
                             .clipShape(Circle())
                             .rotationEffect(.degrees(isRefreshButtonAnimating ? 360 : 0))
                     }
@@ -595,10 +599,10 @@ struct HUDView: View {
                 if selectedTab == .settings {
                     Button(action: onClose) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white)
-                            .frame(width: 28, height: 28)
-                            .background(Color.white.opacity(0.2))
+                            .frame(width: 24, height: 24)
+                            .background(Color.white.opacity(0.15))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -675,16 +679,6 @@ struct HUDView: View {
                             .foregroundStyle(.white.opacity(0.6))
                             .multilineTextAlignment(.center)
                     }
-                    
-                    if !communicationSettings.notificationsFetchURL.isEmpty {
-                        Button("Refresh now") {
-                            refreshNotifications()
-                        }
-                        .buttonStyle(.plain)
-                        .font(.caption)
-                        .foregroundStyle(.blue.opacity(0.8))
-                        .disabled(isRefreshing)
-                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 20)
@@ -719,15 +713,6 @@ struct HUDView: View {
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.6))
                             .multilineTextAlignment(.center)
-                    }
-                    
-                    if !communicationSettings.actionsFetchURL.isEmpty {
-                        Button("Refresh now") {
-                            actionsManager.fetchActions()
-                        }
-                        .buttonStyle(.plain)
-                        .font(.caption)
-                        .foregroundStyle(.blue.opacity(0.8))
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -1458,37 +1443,37 @@ struct HUDView: View {
                     }
                 }) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.system(size: 9, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
-                        .frame(width: 16, height: 16)
-                        .background(Color.white.opacity(0.1))
+                        .frame(width: 14, height: 14)
+                        .background(Color.white.opacity(0.08))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
         }
         .frame(maxWidth: gradientSettings.windowSize.width)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(
                     LinearGradient(
                         gradient: Gradient(colors: [
-                            Color.black.opacity(0.3),
-                            Color.black.opacity(0.2)
+                            Color.black.opacity(0.25),
+                            Color.black.opacity(0.15)
                         ]),
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(.white.opacity(0.08), lineWidth: 1)
                 )
         )
-        .padding(.horizontal, 6)
-        .padding(.top, 4)
+        .padding(.horizontal, 4)
+        .padding(.top, 2)
     }
     
 }
