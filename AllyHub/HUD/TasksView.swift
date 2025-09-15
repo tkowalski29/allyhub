@@ -1347,6 +1347,24 @@ struct TaskItemView: View {
     
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Due date as first line if available
+            if let dueDate = task.dueDate {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.caption)
+                        .foregroundStyle(dueDateColor(dueDate))
+                    
+                    Text("Due: \(dueDateDetailedText(dueDate))")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(dueDateColor(dueDate))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(dueDateColor(dueDate).opacity(0.1))
+                .cornerRadius(6)
+            }
+            
             // Description
             if !task.description.isEmpty {
                 Text(task.description)
@@ -1440,6 +1458,30 @@ struct TaskItemView: View {
             return .orange
         } else {
             return .white.opacity(0.7)
+        }
+    }
+    
+    
+    private func dueDateDetailedText(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: date))
+        let daysRemaining = components.day ?? 0
+        
+        let dateString = formatter.string(from: date)
+        
+        if daysRemaining < 0 {
+            return "\(dateString) (\(abs(daysRemaining)) days overdue)"
+        } else if daysRemaining == 0 {
+            return "\(dateString) (today)"
+        } else if daysRemaining == 1 {
+            return "\(dateString) (tomorrow)"
+        } else {
+            return "\(dateString) (in \(daysRemaining) days)"
         }
     }
 }

@@ -66,6 +66,11 @@ class TasksManager: ObservableObject {
                 return
             }
             
+            // Debug: Print raw response
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📄 [TasksManager] Raw API response: \(responseString)")
+            }
+            
             do {
                 // First try to decode as array containing structured response (your API format)
                 if let arrayResponse = try? JSONDecoder().decode([TasksResponse].self, from: data),
@@ -185,14 +190,22 @@ class TasksManager: ObservableObject {
     // MARK: - Private Methods
     
     private func normalizeTaskStatus(_ status: String?) -> TaskStatus {
-        guard let status = status else { return .todo }
+        guard let status = status else { 
+            print("⚠️ [TasksManager] Status is nil, defaulting to .todo")
+            return .todo 
+        }
+        
+        print("🔍 [TasksManager] Normalizing status: '\(status)' -> lowercased: '\(status.lowercased())'")
         
         switch status.lowercased() {
         case "todo", "to do":
+            print("✅ [TasksManager] Status mapped to .todo")
             return .todo
         case "inprogress", "in progress", "in-progress":
+            print("✅ [TasksManager] Status mapped to .inprogress")
             return .inprogress
         default:
+            print("⚠️ [TasksManager] Unknown status '\(status)', defaulting to .todo")
             return .todo
         }
     }
@@ -201,6 +214,7 @@ class TasksManager: ObservableObject {
         var newTasks: [TaskItem] = []
         
         let dateFormatter = ISO8601DateFormatter()
+        print("📋 [TasksManager] Processing \(apiTasks.count) tasks from API array")
         
         for apiTask in apiTasks {
             var createdDate: Date?
@@ -211,8 +225,29 @@ class TasksManager: ObservableObject {
             }
             
             if let dueDateString = apiTask.due_date, !dueDateString.isEmpty {
+                print("🗓️ [TasksManager] Raw due_date string: '\(dueDateString)'")
                 dueDate = dateFormatter.date(from: dueDateString)
+                if dueDate == nil {
+                    print("❌ [TasksManager] Failed to parse due_date with ISO8601DateFormatter")
+                    // Try alternative date formatter
+                    let altFormatter = DateFormatter()
+                    altFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+                    altFormatter.timeZone = TimeZone(identifier: "UTC")
+                    dueDate = altFormatter.date(from: dueDateString)
+                    if dueDate != nil {
+                        print("✅ [TasksManager] Successfully parsed due_date with alternative formatter")
+                    } else {
+                        print("❌ [TasksManager] Failed to parse due_date with alternative formatter too")
+                    }
+                } else {
+                    print("✅ [TasksManager] Successfully parsed due_date with ISO8601DateFormatter")
+                }
+            } else {
+                print("⚠️ [TasksManager] No due_date provided or empty string")
             }
+            
+            print("📋 [TasksManager] Processing task: '\(apiTask.title ?? "No Title")' with dueDate: \(apiTask.due_date ?? "nil")")
+            print("📋 [TasksManager] Task due date parsed as: \(dueDate?.description ?? "nil")")
             
             let task = TaskItem(
                 title: apiTask.title ?? "No Title",
@@ -227,6 +262,7 @@ class TasksManager: ObservableObject {
                 tags: apiTask.tags ?? []
             )
             
+            print("✅ [TasksManager] Created TaskItem with dueDate: \(task.dueDate?.description ?? "nil")")
             newTasks.append(task)
         }
         
@@ -250,7 +286,25 @@ class TasksManager: ObservableObject {
             }
             
             if let dueDateString = apiTask.due_date, !dueDateString.isEmpty {
+                print("🗓️ [TasksManager] Raw due_date string: '\(dueDateString)'")
                 dueDate = dateFormatter.date(from: dueDateString)
+                if dueDate == nil {
+                    print("❌ [TasksManager] Failed to parse due_date with ISO8601DateFormatter")
+                    // Try alternative date formatter
+                    let altFormatter = DateFormatter()
+                    altFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+                    altFormatter.timeZone = TimeZone(identifier: "UTC")
+                    dueDate = altFormatter.date(from: dueDateString)
+                    if dueDate != nil {
+                        print("✅ [TasksManager] Successfully parsed due_date with alternative formatter")
+                    } else {
+                        print("❌ [TasksManager] Failed to parse due_date with alternative formatter too")
+                    }
+                } else {
+                    print("✅ [TasksManager] Successfully parsed due_date with ISO8601DateFormatter")
+                }
+            } else {
+                print("⚠️ [TasksManager] No due_date provided or empty string")
             }
             
             let task = TaskItem(

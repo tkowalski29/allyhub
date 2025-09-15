@@ -37,8 +37,8 @@
 ### Taski
 
 - [x] dodac priorytet w api
-- [ ] dodac informacje o due data i ilosci dni jakie zostaly
-- [ ] na floating mozliwosc przelaczenia na inny task w postaci boxa pod floating
+- [x] dodac informacje o due data i ilosci dni jakie zostaly
+- [x] na floating mozliwosc przelaczenia na inny task w postaci boxa pod floating
 
 ### Chat
 
