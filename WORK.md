@@ -13,6 +13,7 @@
 - [x] akcje (wysylanie akcji get / post)
 - [x] sterowanie szerokoscia
 - [x] skroty klawiszowe
+- [ ] kalendarz ??
 - [ ] tworzenie taska -> nagrywanie ekranu i dzwieku oraz mikrofonu
 - [ ] albo logujesz sie do AllyHub Center albo podpinasz webhooki recznie 
 - [ ] budowanie automatyczne paczki w github workflows
@@ -21,8 +22,10 @@
 ## OTHERS AND BUGS
 
 - [ ] mechanizmy cachowania danych aby nie było ciaglego pobierania
+- [x] default card
 - [ ] dark mode
 - [ ] globalne skróty
+- [ ] wybor w default card nie przynosi efaktu
 
 ### Akcje
 

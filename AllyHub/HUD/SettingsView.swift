@@ -25,6 +25,7 @@ struct SettingsView: View {
             }
             .padding()
         }
+        .scrollIndicators(.never)
     }
     
     // MARK: - Keyboard Shortcuts Accordion
@@ -435,7 +436,7 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.7))
                         Spacer()
-                        Text("\(communicationSettings.notificationsRefreshInterval) min")
+                        Text("10 min")
                             .font(.caption)
                             .foregroundStyle(.white)
                             .fontWeight(.medium)
@@ -588,6 +589,7 @@ struct SettingsView: View {
             transparencySection
             windowSizeSection
             compactBarModeSection
+            defaultTabSection
         }
     }
     
@@ -664,63 +666,247 @@ struct SettingsView: View {
     
     private var compactBarModeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            compactBarModeHeader
+            compactBarModeDescription
+            compactBarModeOptions
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private var compactBarModeHeader: some View {
+        HStack {
+            Image(systemName: "menubar.dock.rectangle")
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.8))
+            
             Text("Compact Bar Display")
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.white)
             
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(GradientSettings.CompactBarMode.allCases) { mode in
-                    Button(action: {
-                        gradientSettings.setCompactBarMode(mode)
-                    }) {
-                        HStack {
-                            Image(systemName: gradientSettings.compactBarMode == mode ? "largecircle.fill.circle" : "circle")
-                                .foregroundStyle(.white)
-                            Text(mode.rawValue)
-                                .foregroundStyle(.white)
-                            Spacer()
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            Spacer()
         }
+    }
+    
+    private var compactBarModeDescription: some View {
+        Text("Choose what appears when the floating panel is minimized")
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.7))
+            .fixedSize(horizontal: false, vertical: true)
+    }
+    
+    private var compactBarModeOptions: some View {
+        HStack(spacing: 16) {
+            ForEach(GradientSettings.CompactBarMode.allCases) { mode in
+                compactBarModeButton(mode: mode)
+            }
+            Spacer()
+        }
+    }
+    
+    private func compactBarModeButton(mode: GradientSettings.CompactBarMode) -> some View {
+        Button(action: {
+            gradientSettings.setCompactBarMode(mode)
+        }) {
+            VStack(spacing: 8) {
+                Image(systemName: gradientSettings.compactBarMode == mode ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white)
+                
+                Image(systemName: mode.iconName)
+                    .font(.system(size: 24))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
+                
+                Text(mode.rawValue)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(gradientSettings.compactBarMode == mode ? 
+                         Color.white.opacity(0.1) : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(gradientSettings.compactBarMode == mode ? 
+                                   Color.white.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
     
     private var windowSizeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Window Size")
+            HStack {
+                Image(systemName: "rectangle.resize")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white.opacity(0.8))
+                
+                Text("Window Size")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                
+                Spacer()
+                
+                Text("\(gradientSettings.windowSize.rawValue) (\(Int(gradientSettings.windowSize.width))px)")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.15))
+                    .cornerRadius(4)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Small")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                    Spacer()
+                    Text("Medium")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("Large")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                
+                Slider(
+                    value: Binding(
+                        get: { 
+                            switch gradientSettings.windowSize {
+                            case .small: return 0
+                            case .medium: return 1
+                            case .large: return 2
+                            }
+                        },
+                        set: { newValue in
+                            let roundedValue = Int(round(newValue))
+                            let size: GradientSettings.WindowSize
+                            switch roundedValue {
+                            case 0: size = .small
+                            case 2: size = .large
+                            default: size = .medium
+                            }
+                            gradientSettings.setWindowSize(size)
+                        }
+                    ),
+                    in: 0...2,
+                    step: 1
+                )
+                .accentColor(.white)
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private var defaultTabSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            defaultTabHeader
+            defaultTabDescription
+            defaultTabOptions
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private var defaultTabHeader: some View {
+        HStack {
+            Image(systemName: "square.grid.2x2")
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.8))
+            
+            Text("Default Card")
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.white)
             
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(GradientSettings.WindowSize.allCases) { size in
-                    Button(action: {
-                        gradientSettings.setWindowSize(size)
-                    }) {
-                        HStack {
-                            Image(systemName: gradientSettings.windowSize == size ? "largecircle.fill.circle" : "circle")
-                                .foregroundStyle(.white)
-                            Text(size.rawValue)
-                                .foregroundStyle(.white)
-                            Spacer()
-                            Text("\(Int(size.width))px")
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.7))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(4)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .buttonStyle(.plain)
-                }
+            Spacer()
+        }
+    }
+    
+    private var defaultTabDescription: some View {
+        Text("Choose which card is shown when the floating panel is expanded")
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.7))
+            .fixedSize(horizontal: false, vertical: true)
+    }
+    
+    private var defaultTabOptions: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
+            ForEach(GradientSettings.DefaultTab.allCases) { tab in
+                defaultTabButton(tab: tab)
             }
         }
+    }
+    
+    private func defaultTabButton(tab: GradientSettings.DefaultTab) -> some View {
+        Button(action: {
+            gradientSettings.setDefaultTab(tab)
+        }) {
+            VStack(spacing: 8) {
+                Image(systemName: gradientSettings.defaultTab == tab ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white)
+                
+                Image(systemName: tab.iconName)
+                    .font(.system(size: 20))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
+                
+                Text(tab.rawValue)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(gradientSettings.defaultTab == tab ? 
+                         Color.white.opacity(0.1) : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(gradientSettings.defaultTab == tab ? 
+                                   Color.white.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Tasks Accordion
@@ -767,6 +953,14 @@ struct SettingsView: View {
     
     private var tasksSettingsView: some View {
         VStack(alignment: .leading, spacing: 16) {
+            tasksUrlFields
+            tasksRefreshIntervalSection
+            floatingPanelActionSection
+        }
+    }
+    
+    private var tasksUrlFields: some View {
+        Group {
             chatUrlField(
                 title: "Fetch URL",
                 placeholder: "Enter URL to fetch tasks",
@@ -784,102 +978,158 @@ struct SettingsView: View {
                 placeholder: "Enter URL to create new tasks",
                 value: $communicationSettings.taskCreateURL
             )
-            
-            // Tasks refresh interval setting
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.8))
-                    
-                    Text("Auto Refresh Interval")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.white)
-                    
-                    Spacer()
-                    
-                    Text("\(communicationSettings.tasksRefreshInterval) min")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.15))
-                        .cornerRadius(4)
-                }
+        }
+    }
+    
+    private var tasksRefreshIntervalSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white.opacity(0.8))
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("5 min")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
-                        Spacer()
-                        Text("\(communicationSettings.tasksRefreshInterval) min")
-                            .font(.caption)
-                            .foregroundStyle(.white)
-                            .fontWeight(.medium)
-                        Spacer()
-                        Text("15 min")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-                    
-                    Slider(
-                        value: Binding(
-                            get: { Double(communicationSettings.tasksRefreshInterval) },
-                            set: { newValue in
-                                let roundedValue = Int(round(newValue / 5) * 5) // Round to nearest 5
-                                let clampedValue = max(5, min(15, roundedValue)) // Clamp between 5-15
-                                communicationSettings.tasksRefreshInterval = clampedValue
-                                communicationSettings.saveSettings()
-                            }
-                        ),
-                        in: 5...15,
-                        step: 5
-                    )
-                    .accentColor(.white)
-                }
-                .padding(.horizontal, 4)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .background(Color.white.opacity(0.05))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            
-            // Floating panel action setting
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Floating Panel + Button")
+                Text("Auto Refresh Interval")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.white)
                 
-                Picker("Default Action", selection: $taskCreationSettings.floatingPanelDefaultAction) {
-                    ForEach(TaskCreationSettings.FloatingPanelAction.allCases, id: \.self) { action in
-                        HStack {
-                            Image(systemName: action.iconName)
-                                .foregroundStyle(.white)
-                            Text(action.displayName)
-                                .foregroundStyle(.white)
-                        }
-                        .tag(action)
-                    }
-                }
-                .pickerStyle(.menu)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.white.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                )
+                Spacer()
+                
+                Text("\(communicationSettings.tasksRefreshInterval) min")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.15))
+                    .cornerRadius(4)
             }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("5 min")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                    Spacer()
+                    Text("10 min")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("15 min")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                
+                Slider(
+                    value: Binding(
+                        get: { Double(communicationSettings.tasksRefreshInterval) },
+                        set: { newValue in
+                            let roundedValue = Int(round(newValue / 5) * 5)
+                            let clampedValue = max(5, min(15, roundedValue))
+                            communicationSettings.tasksRefreshInterval = clampedValue
+                            communicationSettings.saveSettings()
+                        }
+                    ),
+                    in: 5...15,
+                    step: 5
+                )
+                .accentColor(.white)
+            }
+            .padding(.horizontal, 4)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private var floatingPanelActionSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            floatingPanelHeader
+            floatingPanelDescription
+            floatingPanelOptions
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private var floatingPanelHeader: some View {
+        HStack {
+            Image(systemName: "plus.rectangle.on.rectangle")
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.8))
+            
+            Text("Floating Panel + Button")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(.white)
+            
+            Spacer()
+        }
+    }
+    
+    private var floatingPanelDescription: some View {
+        Text("Choose what happens when you click the + button in the floating panel")
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.7))
+            .fixedSize(horizontal: false, vertical: true)
+    }
+    
+    private var floatingPanelOptions: some View {
+        HStack(spacing: 16) {
+            ForEach(TaskCreationSettings.FloatingPanelAction.allCases, id: \.self) { action in
+                floatingPanelActionButton(action: action)
+            }
+            Spacer()
+        }
+    }
+    
+    private func floatingPanelActionButton(action: TaskCreationSettings.FloatingPanelAction) -> some View {
+        Button(action: {
+            taskCreationSettings.setFloatingPanelAction(action)
+        }) {
+            VStack(spacing: 8) {
+                Image(systemName: taskCreationSettings.floatingPanelDefaultAction == action ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white)
+                
+                Image(systemName: action.iconName)
+                    .font(.system(size: 20))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
+                
+                Text(action.displayName)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(taskCreationSettings.floatingPanelDefaultAction == action ? 
+                         Color.white.opacity(0.1) : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(taskCreationSettings.floatingPanelDefaultAction == action ? 
+                                   Color.white.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Helper Functions

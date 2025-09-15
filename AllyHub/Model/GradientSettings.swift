@@ -12,6 +12,7 @@ final class GradientSettings: ObservableObject {
     @Published var expandedOpacity: Double = 0.7  // Default 70%
     @Published var compactBarMode: CompactBarMode = .tasks
     @Published var windowSize: WindowSize = .small
+    @Published var defaultTab: DefaultTab = .chat
     
     enum WindowSize: String, CaseIterable, Identifiable {
         case small = "Small"
@@ -34,6 +35,31 @@ final class GradientSettings: ObservableObject {
         case chat = "Chat Input"
         
         var id: String { rawValue }
+        
+        var iconName: String {
+            switch self {
+            case .tasks: return "checkmark.circle.fill"
+            case .chat: return "message.fill"
+            }
+        }
+    }
+    
+    enum DefaultTab: String, CaseIterable, Identifiable {
+        case chat = "Chat"
+        case tasks = "Tasks"
+        case notifications = "Notifications"
+        case actions = "Actions"
+        
+        var id: String { rawValue }
+        
+        var iconName: String {
+            switch self {
+            case .chat: return "message"
+            case .tasks: return "checklist"
+            case .notifications: return "bell"
+            case .actions: return "bolt"
+            }
+        }
     }
     
     enum GradientType: String, CaseIterable, Identifiable {
@@ -123,6 +149,11 @@ final class GradientSettings: ObservableObject {
            let windowSizeType = WindowSize(rawValue: savedWindowSize) {
             windowSize = windowSizeType
         }
+        
+        if let savedTab = UserDefaults.standard.string(forKey: "AllyHub.DefaultTab"),
+           let tab = DefaultTab(rawValue: savedTab) {
+            defaultTab = tab
+        }
     }
     
     func saveSettings() {
@@ -130,6 +161,7 @@ final class GradientSettings: ObservableObject {
         UserDefaults.standard.set(expandedOpacity, forKey: "AllyHub.ExpandedOpacity")
         UserDefaults.standard.set(compactBarMode.rawValue, forKey: "AllyHub.CompactBarMode")
         UserDefaults.standard.set(windowSize.rawValue, forKey: "AllyHub.WindowSize")
+        UserDefaults.standard.set(defaultTab.rawValue, forKey: "AllyHub.DefaultTab")
     }
     
     func setGradient(_ gradient: GradientType) {
@@ -155,6 +187,11 @@ final class GradientSettings: ObservableObject {
         if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
             appDelegate.updateWindowSize()
         }
+    }
+    
+    func setDefaultTab(_ tab: DefaultTab) {
+        defaultTab = tab
+        saveSettings()
     }
 }
 
@@ -453,10 +490,17 @@ final class TaskCreationSettings: ObservableObject {
             }
         }
         
+        var description: String {
+            switch self {
+            case .microphone: return "Start audio recording immediately when + is clicked"
+            case .screen: return "Start screen recording immediately when + is clicked"
+            }
+        }
+        
         var iconName: String {
             switch self {
             case .microphone: return "mic.fill"
-            case .screen: return "display"
+            case .screen: return "record.circle.fill"
             }
         }
     }
