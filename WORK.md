@@ -21,11 +21,9 @@
 
 ## OTHERS AND BUGS
 
-- [ ] mechanizmy cachowania danych aby nie było ciaglego pobierania
-- [x] default card
+- [x] mechanizmy cachowania danych aby nie było ciaglego pobierania
 - [ ] dark mode
 - [ ] globalne skróty
-- [ ] wybor w default card nie przynosi efaktu
 
 ### Akcje
 

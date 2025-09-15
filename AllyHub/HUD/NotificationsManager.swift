@@ -8,12 +8,59 @@ class NotificationsManager: ObservableObject {
     @Published var expandedNotificationId: UUID?
     
     private let communicationSettings: CommunicationSettings
+    private let cacheManager = CacheManager.shared
     
     init(communicationSettings: CommunicationSettings) {
         self.communicationSettings = communicationSettings
+        setupBackgroundRefresh()
+        loadCachedNotifications()
+    }
+    
+    private func setupBackgroundRefresh() {
+        NotificationCenter.default.addObserver(
+            forName: .refreshNotificationsInBackground,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                await self.fetchNotificationsInBackground()
+            }
+        }
+    }
+    
+    private func loadCachedNotifications() {
+        if let cachedNotifications = cacheManager.getCachedNotifications() {
+            let notificationItems = cachedNotifications.map { apiNotification in
+                let dateFormatter = ISO8601DateFormatter()
+                var createdDate: Date?
+                
+                if let createdAtString = apiNotification.created_at {
+                    createdDate = dateFormatter.date(from: createdAtString)
+                }
+                
+                return NotificationItem(
+                    title: apiNotification.title ?? "No Title",
+                    message: apiNotification.message ?? "No Message",
+                    date: createdDate,
+                    createdAt: createdDate,
+                    isRead: apiNotification.is_read ?? false,
+                    url: apiNotification.url,
+                    apiId: apiNotification.id,
+                    type: apiNotification.type
+                )
+            }
+            self.notifications = notificationItems
+            self.unreadNotificationsCount = notificationItems.filter { !$0.isRead }.count
+            print("📱 [NotificationsManager] Loaded \(notificationItems.count) notifications from cache")
+        }
     }
     
     // MARK: - Public Methods
+    
+    func fetchNotificationsInBackground() async {
+        print("🔄 [NotificationsManager] Background refresh triggered")
+        fetchNotifications()
+    }
     
     func fetchNotifications() {
         print("🔄 [NotificationsManager] Starting fetchNotifications()")
@@ -167,6 +214,9 @@ class NotificationsManager: ObservableObject {
         // Update unread count from local data for direct array (fallback)
         unreadNotificationsCount = newNotifications.filter { !$0.isRead }.count
         
+        // Cache the notifications
+        cacheManager.cacheNotifications(apiNotifications)
+        
         print("Successfully fetched \(newNotifications.count) notifications (direct array)")
     }
     
@@ -206,6 +256,9 @@ class NotificationsManager: ObservableObject {
         notifications = newNotifications
         // Use unread count from API response
         unreadNotificationsCount = response.count_unread
+        
+        // Cache the notifications
+        cacheManager.cacheNotifications(response.collection)
         
         print("✅ Successfully fetched \(newNotifications.count) notifications, \(response.count_unread) unread, total count: \(response.count)")
     }

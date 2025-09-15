@@ -9,9 +9,41 @@ class ActionsManager: ObservableObject {
     @Published var showResponse: Bool = false
     
     private let communicationSettings: CommunicationSettings
+    private let cacheManager = CacheManager.shared
     
     init(communicationSettings: CommunicationSettings) {
         self.communicationSettings = communicationSettings
+        loadCachedActions()
+    }
+    
+    private func loadCachedActions() {
+        if let cachedActions = cacheManager.getCachedActions() {
+            let actionItems = cachedActions.map { apiAction in
+                // Convert APIActionParameter to ActionParameter
+                var convertedParameters: [String: ActionParameter] = [:]
+                if let apiParameters = apiAction.parameters {
+                    for (key, apiParam) in apiParameters {
+                        convertedParameters[key] = ActionParameter(
+                            type: apiParam.type,
+                            placeholder: apiParam.placeholder,
+                            options: apiParam.options,
+                            order: apiParam.order ?? 0
+                        )
+                    }
+                }
+                
+                return ActionItem(
+                    id: apiAction.id ?? UUID().uuidString,
+                    title: apiAction.title ?? "No Title",
+                    message: apiAction.message ?? "",
+                    url: apiAction.url,
+                    method: apiAction.method ?? "POST",
+                    parameters: convertedParameters
+                )
+            }
+            self.actions = actionItems
+            print("📱 [ActionsManager] Loaded \(actionItems.count) actions from cache")
+        }
     }
     
     // MARK: - Public Methods
@@ -285,6 +317,10 @@ class ActionsManager: ObservableObject {
         }
         
         actions = newActions
+        
+        // Cache the actions
+        cacheManager.cacheActions(apiActions)
+        
         print("✅ Successfully fetched \(newActions.count) actions (direct array)")
     }
     
@@ -318,6 +354,10 @@ class ActionsManager: ObservableObject {
         }
         
         actions = newActions
+        
+        // Cache the actions
+        cacheManager.cacheActions(response.collection)
+        
         print("✅ Successfully fetched \(newActions.count) actions, total count: \(response.count)")
     }
     

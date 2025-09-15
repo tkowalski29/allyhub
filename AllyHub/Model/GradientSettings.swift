@@ -12,7 +12,6 @@ final class GradientSettings: ObservableObject {
     @Published var expandedOpacity: Double = 0.7  // Default 70%
     @Published var compactBarMode: CompactBarMode = .tasks
     @Published var windowSize: WindowSize = .small
-    @Published var defaultTab: DefaultTab = .chat
     
     enum WindowSize: String, CaseIterable, Identifiable {
         case small = "Small"
@@ -44,23 +43,6 @@ final class GradientSettings: ObservableObject {
         }
     }
     
-    enum DefaultTab: String, CaseIterable, Identifiable {
-        case chat = "Chat"
-        case tasks = "Tasks"
-        case notifications = "Notifications"
-        case actions = "Actions"
-        
-        var id: String { rawValue }
-        
-        var iconName: String {
-            switch self {
-            case .chat: return "message"
-            case .tasks: return "checklist"
-            case .notifications: return "bell"
-            case .actions: return "bolt"
-            }
-        }
-    }
     
     enum GradientType: String, CaseIterable, Identifiable {
         case blue = "blue"
@@ -150,10 +132,6 @@ final class GradientSettings: ObservableObject {
             windowSize = windowSizeType
         }
         
-        if let savedTab = UserDefaults.standard.string(forKey: "AllyHub.DefaultTab"),
-           let tab = DefaultTab(rawValue: savedTab) {
-            defaultTab = tab
-        }
     }
     
     func saveSettings() {
@@ -161,7 +139,6 @@ final class GradientSettings: ObservableObject {
         UserDefaults.standard.set(expandedOpacity, forKey: "AllyHub.ExpandedOpacity")
         UserDefaults.standard.set(compactBarMode.rawValue, forKey: "AllyHub.CompactBarMode")
         UserDefaults.standard.set(windowSize.rawValue, forKey: "AllyHub.WindowSize")
-        UserDefaults.standard.set(defaultTab.rawValue, forKey: "AllyHub.DefaultTab")
     }
     
     func setGradient(_ gradient: GradientType) {
@@ -189,10 +166,6 @@ final class GradientSettings: ObservableObject {
         }
     }
     
-    func setDefaultTab(_ tab: DefaultTab) {
-        defaultTab = tab
-        saveSettings()
-    }
 }
 
 // MARK: - KeyboardShortcutsSettings

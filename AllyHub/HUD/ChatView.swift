@@ -18,6 +18,7 @@ struct ChatView: View {
     @ObservedObject var communicationSettings: CommunicationSettings
     @StateObject private var chatService = ChatService()
     @ObservedObject var viewModel: ChatViewModel
+    private let cacheManager = CacheManager.shared
     
     @State private var chatInputText = ""
     @AppStorage("activeConversationId") private var activeConversationId: String?
@@ -57,6 +58,7 @@ struct ChatView: View {
             conversationsListAccordion
         }
         .onAppear {
+            loadCachedConversations()
             loadConversations()
         }
         .onReceive(viewModel.$shouldCreateNewConversation) { shouldCreate in
@@ -603,6 +605,25 @@ struct ChatView: View {
         }
     }
     
+    private func loadCachedConversations() {
+        if let cachedConversations = cacheManager.getCachedConversations() {
+            conversations = cachedConversations.map { chatServiceConversation in
+                ApiConversation(
+                    id: chatServiceConversation.id,
+                    resume: chatServiceConversation.resume
+                )
+            }
+            print("📱 [ChatView] Loaded \(conversations.count) conversations from cache")
+            
+            // Load active conversation if one is saved
+            if let savedActiveConversationId = activeConversationId,
+               conversations.contains(where: { $0.id == savedActiveConversationId }) {
+                loadConversationMessages(savedActiveConversationId)
+                print("📱 [ChatView] Restored active conversation from cache: \(savedActiveConversationId)")
+            }
+        }
+    }
+    
     private func loadConversations() {
         Task {
             let result = await chatService.fetchConversations(from: communicationSettings.chatHistoryURL)
@@ -618,6 +639,10 @@ struct ChatView: View {
                         )
                     }
                     print("✅ Loaded \(conversations.count) conversations from API")
+                    
+                    // Cache the conversations
+                    let conversationsForCache = response.collection
+                    cacheManager.cacheConversations(conversationsForCache)
                     
                     // Load active conversation if one is saved
                     if let savedActiveConversationId = activeConversationId,

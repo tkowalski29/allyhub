@@ -9,12 +9,52 @@ class TasksManager: ObservableObject {
     @Published var statusOrder: [String] = ["todo", "inprogress"] // Default order, updated from API
     
     private let communicationSettings: CommunicationSettings
+    private let cacheManager = CacheManager.shared
     
     init(communicationSettings: CommunicationSettings) {
         self.communicationSettings = communicationSettings
+        setupBackgroundRefresh()
+        loadCachedTasks()
+    }
+    
+    private func setupBackgroundRefresh() {
+        NotificationCenter.default.addObserver(
+            forName: .refreshTasksInBackground,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                await self.fetchTasksInBackground()
+            }
+        }
+    }
+    
+    private func loadCachedTasks() {
+        if let cachedTasks = cacheManager.getCachedTasks() {
+            let taskItems = cachedTasks.map { task in
+                TaskItem(
+                    title: task.title,
+                    description: task.description,
+                    status: TaskStatus(rawValue: task.status) ?? .todo,
+                    priority: TaskPriority(rawValue: task.priority) ?? .medium,
+                    isCompleted: task.isCompleted,
+                    dueDate: task.dueDate,
+                    createdAt: task.createdAt,
+                    apiId: task.id
+                )
+            }
+            self.tasks = taskItems
+            self.tasksCount = taskItems.count
+            print("📱 [TasksManager] Loaded \(taskItems.count) tasks from cache")
+        }
     }
     
     // MARK: - Public Methods
+    
+    func fetchTasksInBackground() async {
+        print("🔄 [TasksManager] Background refresh triggered")
+        fetchTasks()
+    }
     
     func fetchTasks() {
         print("🔄 [TasksManager] Starting fetchTasks()")
@@ -269,6 +309,23 @@ class TasksManager: ObservableObject {
         tasks = newTasks
         tasksCount = newTasks.count
         
+        // Cache the tasks
+        let tasksForCache = newTasks.map { taskItem in
+            CacheManager.CachedTask(
+                id: taskItem.id,
+                title: taskItem.title,
+                description: taskItem.description,
+                status: taskItem.status.rawValue,
+                priority: taskItem.priority.rawValue,
+                assignedTo: nil, // TaskItem doesn't have assignedTo
+                dueDate: taskItem.dueDate,
+                createdAt: taskItem.createdAt,
+                updatedAt: nil, // TaskItem doesn't have updatedAt
+                isCompleted: taskItem.isCompleted
+            )
+        }
+        cacheManager.cacheTasks(tasksForCache)
+        
         print("Successfully fetched \(newTasks.count) tasks (direct array)")
     }
     
@@ -325,6 +382,23 @@ class TasksManager: ObservableObject {
         
         tasks = newTasks
         tasksCount = response.count
+        
+        // Cache the tasks
+        let tasksForCache = newTasks.map { taskItem in
+            CacheManager.CachedTask(
+                id: taskItem.id,
+                title: taskItem.title,
+                description: taskItem.description,
+                status: taskItem.status.rawValue,
+                priority: taskItem.priority.rawValue,
+                assignedTo: nil, // TaskItem doesn't have assignedTo
+                dueDate: taskItem.dueDate,
+                createdAt: taskItem.createdAt,
+                updatedAt: nil, // TaskItem doesn't have updatedAt
+                isCompleted: taskItem.isCompleted
+            )
+        }
+        cacheManager.cacheTasks(tasksForCache)
         
         // Update status order from API if provided
         if let apiStatusOrder = response.priority_status {

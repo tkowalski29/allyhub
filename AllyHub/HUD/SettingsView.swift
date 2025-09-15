@@ -589,7 +589,6 @@ struct SettingsView: View {
             transparencySection
             windowSizeSection
             compactBarModeSection
-            defaultTabSection
         }
     }
     
@@ -825,89 +824,6 @@ struct SettingsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
     
-    private var defaultTabSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            defaultTabHeader
-            defaultTabDescription
-            defaultTabOptions
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(Color.white.opacity(0.05))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-    
-    private var defaultTabHeader: some View {
-        HStack {
-            Image(systemName: "square.grid.2x2")
-                .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.8))
-            
-            Text("Default Card")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.white)
-            
-            Spacer()
-        }
-    }
-    
-    private var defaultTabDescription: some View {
-        Text("Choose which card is shown when the floating panel is expanded")
-            .font(.caption)
-            .foregroundStyle(.white.opacity(0.7))
-            .fixedSize(horizontal: false, vertical: true)
-    }
-    
-    private var defaultTabOptions: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
-            ForEach(GradientSettings.DefaultTab.allCases) { tab in
-                defaultTabButton(tab: tab)
-            }
-        }
-    }
-    
-    private func defaultTabButton(tab: GradientSettings.DefaultTab) -> some View {
-        Button(action: {
-            gradientSettings.setDefaultTab(tab)
-        }) {
-            VStack(spacing: 8) {
-                Image(systemName: gradientSettings.defaultTab == tab ? "largecircle.fill.circle" : "circle")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white)
-                
-                Image(systemName: tab.iconName)
-                    .font(.system(size: 20))
-                    .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
-                    .background(Color.white.opacity(0.15))
-                    .clipShape(Circle())
-                
-                Text(tab.rawValue)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(gradientSettings.defaultTab == tab ? 
-                         Color.white.opacity(0.1) : Color.white.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(gradientSettings.defaultTab == tab ? 
-                                   Color.white.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
     
     // MARK: - Tasks Accordion
     

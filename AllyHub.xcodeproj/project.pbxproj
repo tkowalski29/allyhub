@@ -35,6 +35,7 @@
 		AB8049CB2E75F367006AAED5 /* FileUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049CA2E75F367006AAED5 /* FileUploadService.swift */; };
 		AB8049CD2E76DBFC006AAED5 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049CC2E76DBFC006AAED5 /* ChatService.swift */; };
 		AB8049CF2E76E497006AAED5 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049CE2E76E497006AAED5 /* ChatView.swift */; };
+		AB8049D52E785857006AAED5 /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049D42E785857006AAED5 /* CacheManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +81,7 @@
 		AB8049CA2E75F367006AAED5 /* FileUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileUploadService.swift; sourceTree = "<group>"; };
 		AB8049CC2E76DBFC006AAED5 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
 		AB8049CE2E76E497006AAED5 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		AB8049D42E785857006AAED5 /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -183,6 +185,7 @@
 		101234567890ABCDEF000080 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				AB8049D42E785857006AAED5 /* CacheManager.swift */,
 				401234567890ABCDEF000007 /* TimerModel.swift */,
 				401234567890ABCDEF000008 /* TasksModel.swift */,
 				401234567890ABCDEF000014 /* GradientSettings.swift */,
@@ -319,6 +322,7 @@
 				AB8049B72E75301E006AAED5 /* ActionsView.swift in Sources */,
 				AB8049B82E75301E006AAED5 /* ActionsManager.swift in Sources */,
 				501234567890ABCDEF000004 /* FloatingPanel.swift in Sources */,
+				AB8049D52E785857006AAED5 /* CacheManager.swift in Sources */,
 				501234567890ABCDEF000005 /* HUDView.swift in Sources */,
 				AB8049CB2E75F367006AAED5 /* FileUploadService.swift in Sources */,
 				AB8049C42E75EBFB006AAED5 /* AudioRecorderView.swift in Sources */,
@@ -333,6 +337,7 @@
 				AB8049B42E74B5C4006AAED5 /* NotificationsManager.swift in Sources */,
 				501234567890ABCDEF000009 /* GradientSettings.swift in Sources */,
 				501234567890ABCDEF000010 /* CommunicationSettings.swift in Sources */,
+				D168632ECF084A8185E98A3100CACHE /* CacheManager.swift in Sources */,
 				AB8049C02E75E8E1006AAED5 /* TaskCreationSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
