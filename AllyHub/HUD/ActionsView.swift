@@ -130,7 +130,7 @@ struct ActionsView: View {
                             
                             Spacer()
                             
-                            Text(parameter.type == "select" ? "Select" : "Text")
+                            Text(parameter.type == "select" ? "Select" : (parameter.type == "file" ? "File" : "Text"))
                                 .font(.system(size: 10))
                                 .foregroundStyle(.white.opacity(0.5))
                                 .padding(.horizontal, 6)
