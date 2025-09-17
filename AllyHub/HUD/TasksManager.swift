@@ -420,56 +420,7 @@ class TasksManager: ObservableObject {
     }
     
     private func createFallbackTasks() {
-        let fallbackTasks = [
-            TaskItem(
-                title: "Welcome to AllyHub",
-                description: "Get familiar with your new task management companion. Explore features and settings.",
-                status: .todo,
-                priority: .high,
-                isCompleted: false,
-                dueDate: Date().addingTimeInterval(86400), // Tomorrow
-                createdAt: Date().addingTimeInterval(-3600),
-                url: nil,
-                apiId: nil,
-                tags: ["welcome", "setup"]
-            ),
-            TaskItem(
-                title: "Complete Current Project",
-                description: "Finish the remaining tasks for the current project milestone. Review deliverables and prepare for presentation.",
-                status: .inprogress,
-                priority: .high,
-                isCompleted: false,
-                dueDate: Date().addingTimeInterval(172800), // 2 days
-                createdAt: Date().addingTimeInterval(-1800),
-                url: nil,
-                apiId: nil,
-                tags: ["project", "urgent"]
-            ),
-            TaskItem(
-                title: "Team Meeting Preparation",
-                description: "Prepare agenda and materials for the upcoming team meeting. Gather progress reports from all team members.",
-                status: .todo,
-                priority: .medium,
-                isCompleted: false,
-                dueDate: Date().addingTimeInterval(259200), // 3 days
-                createdAt: Date().addingTimeInterval(-900),
-                url: nil,
-                apiId: nil,
-                tags: ["meeting", "team"]
-            ),
-            TaskItem(
-                title: "Code Review",
-                description: "Review and approve pending pull requests. Provide constructive feedback to team members.",
-                status: .todo,
-                priority: .low,
-                isCompleted: true,
-                dueDate: Date().addingTimeInterval(-86400), // Yesterday (completed)
-                createdAt: Date().addingTimeInterval(-7200),
-                url: nil,
-                apiId: nil,
-                tags: ["development", "review"]
-            )
-        ]
+        let fallbackTasks = []
         
         tasks = fallbackTasks
         tasksCount = fallbackTasks.count

@@ -264,38 +264,7 @@ class NotificationsManager: ObservableObject {
     }
     
     private func createFallbackNotifications() {
-        let fallbackNotifications = [
-            NotificationItem(
-                title: "Welcome to AllyHub",
-                message: "Your task management companion is ready to help you stay organized and productive.",
-                date: Date().addingTimeInterval(-3600),
-                createdAt: Date().addingTimeInterval(-3600),
-                isRead: false,
-                url: nil,
-                apiId: nil,
-                type: "info"
-            ),
-            NotificationItem(
-                title: "Timer Started", 
-                message: "Your focus session has begun. Stay concentrated and make progress on your current task.",
-                date: Date().addingTimeInterval(-1800),
-                createdAt: Date().addingTimeInterval(-1800),
-                isRead: true,
-                url: nil,
-                apiId: nil,
-                type: "success"
-            ),
-            NotificationItem(
-                title: "System Update",
-                message: "AllyHub has been updated to the latest version with improved performance and new features.",
-                date: Date().addingTimeInterval(-300),
-                createdAt: Date().addingTimeInterval(-300),
-                isRead: false,
-                url: "https://example.com/update-notes",
-                apiId: nil,
-                type: "info"
-            )
-        ]
+        let fallbackNotifications = []
         
         notifications = fallbackNotifications
         unreadNotificationsCount = fallbackNotifications.filter { !$0.isRead }.count
