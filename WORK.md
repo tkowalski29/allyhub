@@ -28,6 +28,7 @@
 ### Chat
 
 - [ ] ladowanie domyslne danego watku + zapis w cache 
+- [ ] zaznaczam jakis text w innej aplikacja wywołuje skrot klawiszowy i odrazu pojawia sie w polu type to text 
 
 ### Taski
 
