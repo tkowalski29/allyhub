@@ -264,8 +264,8 @@ class NotificationsManager: ObservableObject {
     }
     
     private func createFallbackNotifications() {
-        let fallbackNotifications = []
-        
+        let fallbackNotifications: [NotificationItem] = []
+
         notifications = fallbackNotifications
         unreadNotificationsCount = fallbackNotifications.filter { !$0.isRead }.count
         print("Using fallback notifications")

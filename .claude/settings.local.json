@@ -6,7 +6,8 @@
       "Bash(swiftc:*)",
       "Bash(find:*)",
       "Bash(swift:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(open:*)"
     ],
     "deny": [],
     "ask": []

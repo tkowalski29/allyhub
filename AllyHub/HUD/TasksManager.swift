@@ -7,6 +7,7 @@ class TasksManager: ObservableObject {
     @Published var tasksCount: Int = 0
     @Published var expandedTaskId: String?
     @Published var statusOrder: [String] = ["todo", "inprogress"] // Default order, updated from API
+    @Published var formFields: [TaskFormField] = []
     
     private let communicationSettings: CommunicationSettings
     private let cacheManager = CacheManager.shared
@@ -416,11 +417,50 @@ class TasksManager: ObservableObject {
             print("✅ Updated status order from API: \(statusOrder)")
         }
         
+        // Process form fields if available
+        if let formData = response.form {
+            var newFormFields: [TaskFormField] = []
+            for (key, parameter) in formData.parameters {
+                print("🔍 [TasksManager] Processing field: \(key), type: '\(parameter.type)', options: \(String(describing: parameter.options))")
+
+                let fieldType: TaskFormFieldType
+                switch parameter.type.lowercased() {
+                case "string":
+                    fieldType = .string
+                case "long_string":
+                    fieldType = .longString
+                case "select":
+                    fieldType = .select
+                default:
+                    print("⚠️ [TasksManager] Unknown field type: '\(parameter.type)', defaulting to string")
+                    fieldType = .string
+                }
+
+                let formField = TaskFormField(
+                    key: key,
+                    order: parameter.order,
+                    type: fieldType,
+                    placeholder: parameter.placeholder,
+                    options: parameter.options
+                )
+                newFormFields.append(formField)
+                print("✅ [TasksManager] Created field: \(key) (\(fieldType.rawValue))")
+            }
+
+            // Sort form fields by order
+            formFields = newFormFields.sorted { $0.order < $1.order }
+            print("✅ [TasksManager] Processed \(formFields.count) form fields")
+            print("📝 [TasksManager] Form fields: \(formFields.map { "\($0.key)(\($0.type.rawValue))" }.joined(separator: ", "))")
+        } else {
+            formFields = []
+            print("⚠️ [TasksManager] No form data in API response")
+        }
+
         print("✅ Successfully fetched \(newTasks.count) tasks, total count: \(response.count)")
     }
     
     private func createFallbackTasks() {
-        let fallbackTasks = []
+        let fallbackTasks: [TaskItem] = []
         
         tasks = fallbackTasks
         tasksCount = fallbackTasks.count
@@ -434,6 +474,18 @@ struct TasksResponse: Codable {
     let collection: [APITask]
     let count: Int
     let priority_status: [String]?
+    let form: TaskFormData?
+}
+
+struct TaskFormData: Codable {
+    let parameters: [String: TaskFormFieldParameter]
+}
+
+struct TaskFormFieldParameter: Codable {
+    let order: Int
+    let type: String
+    let placeholder: String
+    let options: [String: String]?
 }
 
 struct APITask: Codable {

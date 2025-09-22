@@ -17,6 +17,7 @@ struct TasksView: View {
     @State private var inlineTaskDescription = ""
     @State private var inlineTaskIsSubmitting = false
     @State private var inlineTaskErrorMessage: String?
+    @State private var dynamicFormValues: [String: String] = [:]
     @State private var showingInlineAudioRecorder = false
     @State private var inlineAudioTaskSubmitted = false
     @StateObject private var inlineAudioManager = AudioRecorderManager()
@@ -345,9 +346,9 @@ struct TasksView: View {
                 Text("Create Task")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.white)
-                
+
                 Spacer()
-                
+
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         showingInlineTaskForm = false
@@ -359,67 +360,12 @@ struct TasksView: View {
                 }
                 .buttonStyle(.plain)
             }
-            
-            // Form fields
-            VStack(spacing: 8) {
-                // Title field
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Title")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white)
-                    
-                    ZStack(alignment: .leading) {
-                        // Custom white placeholder
-                        if inlineTaskTitle.isEmpty {
-                            Text("Enter task title")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white.opacity(0.7))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .allowsHitTesting(false)
-                        }
-                        
-                        TextField("", text: $inlineTaskTitle)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                    }
-                    .background(Color.white.opacity(0.1))
-                    .cornerRadius(6)
-                }
-                
-                // Description field
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Description")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white)
-                    
-                    ZStack(alignment: .topLeading) {
-                        // Custom white placeholder
-                        if inlineTaskDescription.isEmpty {
-                            Text("Enter task description")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white.opacity(0.7))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .allowsHitTesting(false)
-                        }
-                        
-                        TextEditor(text: $inlineTaskDescription)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white)
-                            .scrollContentBackground(.hidden)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                    }
-                    .background(Color.white.opacity(0.1))
-                    .cornerRadius(6)
-                    .frame(minHeight: 60, maxHeight: 80)
-                }
-                
-            }
+
+            // Dynamic form fields based on API configuration
+            DynamicFormView(
+                formFields: tasksManager.formFields,
+                formValues: $dynamicFormValues
+            )
             
             // Submit button
             Button(action: submitInlineTask) {
@@ -814,7 +760,8 @@ struct TasksView: View {
     // MARK: - Inline Task Form Helpers
     
     private var canSubmitInlineTask: Bool {
-        !inlineTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        // Check if at least one required field (typically title) is filled
+        dynamicFormValues.values.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
     
     private func submitInlineTask() {
@@ -829,11 +776,18 @@ struct TasksView: View {
     }
     
     private func submitTaskToAPI() async {
+        // Collect all form values, filtering out empty values
+        var formData: [String: String] = [:]
+        for (key, value) in dynamicFormValues {
+            let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedValue.isEmpty {
+                formData[key] = trimmedValue
+            }
+        }
+
         let taskData = InlineTaskData(
             type: "form",
-            title: inlineTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines),
-            description: inlineTaskDescription.trimmingCharacters(in: .whitespacesAndNewlines),
-            due_date: nil
+            fields: formData
         )
         
         do {
@@ -853,8 +807,7 @@ struct TasksView: View {
                 
                 if result.success {
                     // Reset form on success
-                    inlineTaskTitle = ""
-                    inlineTaskDescription = ""
+                    dynamicFormValues.removeAll()
                     inlineTaskErrorMessage = nil
                     
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -928,9 +881,13 @@ struct TasksView: View {
     }
     
     private func createLocalTask() {
+        // Extract title and description from dynamic form values
+        let title = dynamicFormValues["title"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "New Task"
+        let description = dynamicFormValues["description"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
         let task = TaskItem(
-            title: inlineTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines),
-            description: inlineTaskDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+            title: title,
+            description: description,
             status: .todo,
             priority: .medium,
             isCompleted: false,
@@ -947,8 +904,7 @@ struct TasksView: View {
         addTaskToSystem(task)
         
         // Reset form
-        inlineTaskTitle = ""
-        inlineTaskDescription = ""
+        dynamicFormValues.removeAll()
         inlineTaskErrorMessage = nil
         
         withAnimation(.easeInOut(duration: 0.2)) {
@@ -1146,6 +1102,7 @@ struct TasksView: View {
             }
         }
     }
+
 }
 
 // MARK: - Extensions
@@ -1164,9 +1121,34 @@ extension TaskPriority {
 
 struct InlineTaskData: Codable {
     let type: String
-    let title: String
-    let description: String
-    let due_date: String?
+    var fields: [String: String]
+
+    init(type: String, fields: [String: String]) {
+        self.type = type
+        self.fields = fields
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: DynamicCodingKeys.self)
+        try container.encode(type, forKey: DynamicCodingKeys(stringValue: "type")!)
+
+        for (key, value) in fields {
+            try container.encode(value, forKey: DynamicCodingKeys(stringValue: key)!)
+        }
+    }
+}
+
+struct DynamicCodingKeys: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    init?(intValue: Int) {
+        return nil
+    }
 }
 
 struct InlineTaskSubmissionResult {

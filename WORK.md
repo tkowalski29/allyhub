@@ -29,9 +29,11 @@
 
 - [ ] ladowanie domyslne danego watku + zapis w cache 
 - [ ] zaznaczam jakis text w innej aplikacja wywołuje skrot klawiszowy i odrazu pojawia sie w polu type to text 
+- [ ] formaty odpowiedzi np link z buttonem, cytat, akcja tak/nie, obrazek, plik video
 
 ### Taski
 
+- [x] w collection dodac pole form w ktorym beda pola ktore maja sie wyswietlic przy tworzeniu taska
 - [x] dodac priorytet w api
 - [x] dodac informacje o due data i ilosci dni jakie zostaly
 - [x] na floating mozliwosc przelaczenia na inny task w postaci boxa pod floating

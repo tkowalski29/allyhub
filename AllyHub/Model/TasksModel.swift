@@ -268,3 +268,146 @@ enum TaskCreationType: String, CaseIterable, Identifiable {
         }
     }
 }
+
+// MARK: - Dynamic Form Fields
+
+struct TaskFormField: Identifiable, Codable {
+    let id = UUID()
+    let key: String
+    let order: Int
+    let type: TaskFormFieldType
+    let placeholder: String
+    let options: [String: String]?
+}
+
+enum TaskFormFieldType: String, Codable {
+    case string = "string"
+    case longString = "long_string"
+    case select = "select"
+
+    var isMultiline: Bool {
+        return self == .longString
+    }
+}
+
+// MARK: - Dynamic Form Component
+
+struct DynamicFormView: View {
+    let formFields: [TaskFormField]
+    @Binding var formValues: [String: String]
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ForEach(formFields, id: \.key) { field in
+                dynamicFormField(for: field)
+            }
+        }
+    }
+
+    // MARK: - Dynamic Form Field Rendering
+
+    @ViewBuilder
+    private func dynamicFormField(for field: TaskFormField) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Field label
+            Text(field.key.capitalized)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white)
+
+            // Field input based on type
+            switch field.type {
+            case .string:
+                stringField(for: field)
+            case .longString:
+                longStringField(for: field)
+            case .select:
+                selectField(for: field)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func stringField(for field: TaskFormField) -> some View {
+        ZStack(alignment: .leading) {
+            // Custom white placeholder
+            if (formValues[field.key] ?? "").isEmpty {
+                Text(field.placeholder)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .allowsHitTesting(false)
+            }
+
+            TextField("", text: Binding(
+                get: { formValues[field.key] ?? "" },
+                set: { formValues[field.key] = $0 }
+            ))
+            .textFieldStyle(.plain)
+            .font(.system(size: 12))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(6)
+    }
+
+    @ViewBuilder
+    private func longStringField(for field: TaskFormField) -> some View {
+        ZStack(alignment: .topLeading) {
+            // Custom white placeholder
+            if (formValues[field.key] ?? "").isEmpty {
+                Text(field.placeholder)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .allowsHitTesting(false)
+            }
+
+            TextEditor(text: Binding(
+                get: { formValues[field.key] ?? "" },
+                set: { formValues[field.key] = $0 }
+            ))
+            .font(.system(size: 12))
+            .foregroundStyle(.white)
+            .scrollContentBackground(.hidden)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        }
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(6)
+        .frame(minHeight: 60, maxHeight: 80)
+    }
+
+    @ViewBuilder
+    private func selectField(for field: TaskFormField) -> some View {
+        Menu {
+            if let options = field.options {
+                ForEach(Array(options.keys).sorted(), id: \.self) { optionKey in
+                    Button(optionKey) {
+                        formValues[field.key] = optionKey
+                    }
+                }
+            }
+        } label: {
+            HStack {
+                Text(formValues[field.key] ?? field.placeholder)
+                    .font(.system(size: 12))
+                    .foregroundStyle(formValues[field.key] != nil ? .white : .white.opacity(0.7))
+
+                Spacer()
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+    }
+}

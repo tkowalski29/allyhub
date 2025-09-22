@@ -13,6 +13,9 @@ TIMEOUT = 300
 
 .PHONY: run build clean install uninstall archive help quick-install
 
+cc:
+	ccusage blocks --live
+
 # Default target
 help:
 	@echo "🏗️  AllyHub Build System"
