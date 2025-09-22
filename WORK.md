@@ -14,11 +14,10 @@
 - [x] sterowanie szerokoscia
 - [x] skroty klawiszowe
 - [x] budowanie przez MakeFile
-- [ ] tworzenie taska -> nagrywanie ekranu i dzwieku oraz mikrofonu
 - [ ] albo logujesz sie do AllyHub Center albo podpinasz webhooki recznie 
 - [ ] budowanie automatyczne paczki w github workflows
-- [ ] zapisz konfiguracje w apple claude - button i przywroc konfiguracje
 - [ ] platnosci subskrypcja
+- [ ] tworzenie taska -> nagrywanie ekranu i dzwieku oraz mikrofonu
 
 ## OTHERS AND BUGS
 
@@ -56,5 +55,5 @@
 - [x] uruchamianie codegen
 - [x] tworzenie taskow
 - [x] notyfikacja w piatki ze Oscar szybciej konczy
-- [ ] rozmowa z AI 
+- [x] rozmowa z AI 
 - [ ] nagrywanie rozmowy google meet

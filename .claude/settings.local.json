@@ -7,7 +7,12 @@
       "Bash(find:*)",
       "Bash(swift:*)",
       "Bash(make:*)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(go build:*)",
+      "Bash(./bin/allyhub-center)",
+      "Bash(sqlite3:*)",
+      "Bash(curl:*)",
+      "Bash(go mod:*)"
     ],
     "deny": [],
     "ask": []
