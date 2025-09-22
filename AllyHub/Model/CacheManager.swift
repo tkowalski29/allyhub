@@ -221,6 +221,12 @@ class CacheManager: ObservableObject {
     }
     
     // MARK: - Clear Cache
+    func clearConversationHistoryCache() {
+        cachedConversationHistory.removeAll()
+        conversationHistoryLastFetch = nil
+        UserDefaults.standard.removeObject(forKey: CacheKey.currentConversationHistory.rawValue)
+    }
+
     func clearAllCache() {
         cachedConversations.removeAll()
         cachedConversationHistory.removeAll()

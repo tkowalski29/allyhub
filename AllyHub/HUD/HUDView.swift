@@ -191,6 +191,18 @@ struct HUDView: View {
         .onChange(of: communicationSettings.notificationsRefreshInterval) { _ in
             restartNotificationRefreshTimer()
         }
+        .onChange(of: selectedTab) { newTab in
+            // Auto-load active conversation when switching to Chat tab
+            if newTab == .chat && isExpanded {
+                loadActiveConversationIfNeeded()
+            }
+        }
+        .onChange(of: isExpanded) { expanded in
+            // Auto-load active conversation when expanding to Chat tab
+            if expanded && selectedTab == .chat {
+                loadActiveConversationIfNeeded()
+            }
+        }
     }
     
     // MARK: - Background
@@ -1475,5 +1487,11 @@ struct HUDView: View {
         .padding(.horizontal, 4)
         .padding(.top, 2)
     }
-    
+
+    // MARK: - Chat Auto-Loading Helper
+    private func loadActiveConversationIfNeeded() {
+        // Trigger the chat view model to refresh and load active conversation
+        chatViewModel.triggerRefresh()
+    }
+
 }

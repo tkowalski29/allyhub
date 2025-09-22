@@ -503,24 +503,42 @@ struct ChatView: View {
     }
     
     private func loadConversationMessages(_ conversationId: String) {
+        // First, try to load from cache
+        if let cachedMessages = cacheManager.getCachedConversationHistory() {
+            chatMessages.removeAll()
+
+            // Convert cached API messages to local ChatMessage format
+            for apiMessage in cachedMessages {
+                chatMessages.append(ChatMessage(content: apiMessage.question, isUser: true))
+                chatMessages.append(ChatMessage(content: apiMessage.answer, isUser: false))
+            }
+            print("📱 [ChatView] Loaded \(cachedMessages.count) messages from cache for conversation: \(conversationId)")
+            return
+        }
+
+        // If no cache or cache is stale, load from API
         Task {
             let result = await chatService.getConversationMessages(
                 from: communicationSettings.chatGetConversationURL,
                 conversationId: conversationId
             )
-            
+
             await MainActor.run {
                 switch result {
                 case .success(let response):
                     chatMessages.removeAll()
-                    
+
                     // Convert API messages to local ChatMessage format
                     for apiMessage in response.collection {
                         chatMessages.append(ChatMessage(content: apiMessage.question, isUser: true))
                         chatMessages.append(ChatMessage(content: apiMessage.answer, isUser: false))
                     }
+
+                    // Cache the conversation history
+                    cacheManager.cacheConversationHistory(response.collection, conversationId: conversationId)
+
                     print("✅ Loaded \(response.collection.count) messages for conversation: \(conversationId)")
-                    
+
                 case .failure(let error):
                     print("❌ Failed to load conversation messages: \(error.localizedDescription)")
                     chatMessages.removeAll()
@@ -580,12 +598,16 @@ struct ChatView: View {
                 switch result {
                 case .success(let response):
                     chatMessages.append(ChatMessage(content: response.data.answer.replacingOccurrences(of: "\\n", with: "\n"), isUser: false))
+
+                    // Invalidate cache after successful message send to ensure fresh data on next load
+                    cacheManager.clearConversationHistoryCache()
+
                     print("✅ Message sent successfully")
-                    
+
                 case .failure(let error):
                     print("❌ Failed to send message: \(error.localizedDescription)")
                     chatMessages.append(ChatMessage(
-                        content: "Failed to send message. Please try again.", 
+                        content: "Failed to send message. Please try again.",
                         isUser: false
                     ))
                 }

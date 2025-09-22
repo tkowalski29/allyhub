@@ -27,7 +27,7 @@
 
 ### Chat
 
-- [ ] ladowanie domyslne danego watku + zapis w cache 
+- [x] ladowanie domyslne danego watku + zapis w cache 
 - [ ] zaznaczam jakis text w innej aplikacja wywołuje skrot klawiszowy i odrazu pojawia sie w polu type to text 
 - [ ] formaty odpowiedzi np link z buttonem, cytat, akcja tak/nie, obrazek, plik video
 
