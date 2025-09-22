@@ -1,6 +1,7 @@
 import Cocoa
 import SwiftUI
 import ApplicationServices
+import Carbon
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -240,10 +241,79 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             
             return nil // Consume the event
         }
-        
+
+        // Check text selection shortcut
+        let textSelectionKeyCode = keyboardShortcutsSettings.textSelectionShortcut.key.keyCode
+        let textSelectionModifiers = keyboardShortcutsSettings.textSelectionShortcut.modifiers.flags
+
+        if keyCode == textSelectionKeyCode && modifierFlags == textSelectionModifiers {
+            let textSelectionNames = keyboardShortcutsSettings.textSelectionShortcut.modifiers.map { $0.displayName }.joined()
+            let textSelectionKeyName = keyboardShortcutsSettings.textSelectionShortcut.key.displayName
+            print("✅ Text selection shortcut matched! (\(textSelectionNames)\(textSelectionKeyName)) from \(currentApp)")
+
+            DispatchQueue.main.async {
+                self.handleTextSelectionShortcut()
+            }
+
+            return nil // Consume the event
+        }
+
         return event // Don't consume the event
     }
-    
+
+    // MARK: - Text Selection Handler
+
+    private func handleTextSelectionShortcut() {
+        print("📋 Handling text selection shortcut...")
+
+        // First, copy the selected text using Cmd+C
+        let keyCode = UInt16(kVK_ANSI_C)
+        guard let copyEvent = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: true) else {
+            print("❌ Failed to create copy event")
+            return
+        }
+
+        copyEvent.flags = CGEventFlags.maskCommand
+        copyEvent.post(tap: CGEventTapLocation.cghidEventTap)
+
+        guard let copyEventUp = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: false) else {
+            print("❌ Failed to create copy event up")
+            return
+        }
+
+        copyEventUp.flags = CGEventFlags.maskCommand
+        copyEventUp.post(tap: CGEventTapLocation.cghidEventTap)
+
+        // Wait a bit for the copy to complete, then get text from clipboard
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            let pasteboard = NSPasteboard.general
+            guard let copiedText = pasteboard.string(forType: .string), !copiedText.isEmpty else {
+                print("❌ No text found in clipboard")
+                return
+            }
+
+            print("📋 Copied text: \"\(copiedText)\"")
+
+            // Send to appropriate input field
+            self.pasteTextToActiveInput(copiedText)
+        }
+    }
+
+    private func pasteTextToActiveInput(_ text: String) {
+        // Activate the app and show the HUD if needed
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        showHUD()
+
+        // Notify the UI components to handle the text
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            NotificationCenter.default.post(
+                name: .textSelectionReceived,
+                object: nil,
+                userInfo: ["text": text]
+            )
+        }
+    }
+
     // MARK: - Accessibility Permissions
     
     private func checkAccessibilityPermissions() -> Bool {

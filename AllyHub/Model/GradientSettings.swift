@@ -4,6 +4,7 @@ import Carbon
 
 extension Notification.Name {
     static let nextTabKeyboardShortcut = Notification.Name("nextTabKeyboardShortcut")
+    static let textSelectionReceived = Notification.Name("textSelectionReceived")
 }
 
 @MainActor
@@ -187,6 +188,7 @@ class KeyboardShortcutsSettings: ObservableObject {
     
     @Published var togglePanelShortcut: KeyboardShortcut
     @Published var nextTabShortcut: KeyboardShortcut
+    @Published var textSelectionShortcut: KeyboardShortcut
     
     // MARK: - Initialization
     
@@ -203,7 +205,13 @@ class KeyboardShortcutsSettings: ObservableObject {
             modifiers: [.command],
             displayName: "⌘Tab"
         )
-        
+
+        self.textSelectionShortcut = KeyboardShortcut(
+            key: .c,
+            modifiers: [.command, .shift],
+            displayName: "⌘⇧C"
+        )
+
         loadSettings()
     }
     
@@ -387,6 +395,7 @@ class KeyboardShortcutsSettings: ObservableObject {
     private enum UserDefaultsKeys {
         static let togglePanelShortcut = "keyboardShortcuts_togglePanel"
         static let nextTabShortcut = "keyboardShortcuts_nextTab"
+        static let textSelectionShortcut = "keyboardShortcuts_textSelection"
     }
     
     // MARK: - Settings Management
@@ -399,6 +408,10 @@ class KeyboardShortcutsSettings: ObservableObject {
         if let nextTabData = try? JSONEncoder().encode(nextTabShortcut) {
             UserDefaults.standard.set(nextTabData, forKey: UserDefaultsKeys.nextTabShortcut)
         }
+
+        if let textSelectionData = try? JSONEncoder().encode(textSelectionShortcut) {
+            UserDefaults.standard.set(textSelectionData, forKey: UserDefaultsKeys.textSelectionShortcut)
+        }
     }
     
     private func loadSettings() {
@@ -410,6 +423,11 @@ class KeyboardShortcutsSettings: ObservableObject {
         if let nextTabData = UserDefaults.standard.data(forKey: UserDefaultsKeys.nextTabShortcut),
            let savedNextTabShortcut = try? JSONDecoder().decode(KeyboardShortcut.self, from: nextTabData) {
             self.nextTabShortcut = savedNextTabShortcut
+        }
+
+        if let textSelectionData = UserDefaults.standard.data(forKey: UserDefaultsKeys.textSelectionShortcut),
+           let savedTextSelectionShortcut = try? JSONDecoder().decode(KeyboardShortcut.self, from: textSelectionData) {
+            self.textSelectionShortcut = savedTextSelectionShortcut
         }
     }
     
@@ -426,6 +444,12 @@ class KeyboardShortcutsSettings: ObservableObject {
         self.nextTabShortcut = KeyboardShortcut(key: key, modifiers: modifiers, displayName: displayName)
         saveSettings()
     }
+
+    func setTextSelectionShortcut(key: Key, modifiers: Set<Modifier>) {
+        let displayName = KeyboardShortcut.createDisplayName(key: key, modifiers: modifiers)
+        self.textSelectionShortcut = KeyboardShortcut(key: key, modifiers: modifiers, displayName: displayName)
+        saveSettings()
+    }
     
     // MARK: - Shortcut Validation
     
@@ -439,7 +463,11 @@ class KeyboardShortcutsSettings: ObservableObject {
         if excluding != "nextTab" && newShortcut.key == nextTabShortcut.key && newShortcut.modifiers == nextTabShortcut.modifiers {
             return true
         }
-        
+
+        if excluding != "textSelection" && newShortcut.key == textSelectionShortcut.key && newShortcut.modifiers == textSelectionShortcut.modifiers {
+            return true
+        }
+
         return false
     }
 }

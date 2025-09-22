@@ -73,6 +73,13 @@ struct ChatView: View {
                 viewModel.shouldRefresh = false
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .textSelectionReceived)) { notification in
+            if let userInfo = notification.userInfo,
+               let text = userInfo["text"] as? String {
+                chatInputText = text
+                print("📋 [ChatView] Text pasted from selection: \"\(text)\"")
+            }
+        }
     }
     
     // MARK: - Chat Messages View

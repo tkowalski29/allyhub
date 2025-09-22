@@ -185,6 +185,12 @@ struct HUDView: View {
         .onReceive(NotificationCenter.default.publisher(for: .nextTabKeyboardShortcut)) { _ in
             nextTab()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .textSelectionReceived)) { notification in
+            if let userInfo = notification.userInfo,
+               let text = userInfo["text"] as? String {
+                handleTextSelectionReceived(text)
+            }
+        }
         .onDisappear {
             stopNotificationRefreshTimer()
         }
@@ -1492,6 +1498,33 @@ struct HUDView: View {
     private func loadActiveConversationIfNeeded() {
         // Trigger the chat view model to refresh and load active conversation
         chatViewModel.triggerRefresh()
+    }
+
+    // MARK: - Text Selection Handler
+    private func handleTextSelectionReceived(_ text: String) {
+        print("📋 [HUDView] Text selection received: \"\(text)\"")
+
+        // Decide where to paste based on current mode and expanded state
+        if !isExpanded && gradientSettings.compactBarMode == .chat {
+            // Compact chat mode - paste to compact input field
+            chatMessage = text
+            print("📋 [HUDView] Text pasted to compact chat input")
+        } else if isExpanded && selectedTab == .chat {
+            // Expanded view on chat tab - text will be handled by ChatView
+            print("📋 [HUDView] Text will be handled by ChatView")
+        } else {
+            // Switch to appropriate mode/tab for chat input
+            if !isExpanded {
+                // Switch compact mode to chat if not already
+                gradientSettings.compactBarMode = .chat
+                chatMessage = text
+                print("📋 [HUDView] Switched to compact chat mode and pasted text")
+            } else {
+                // Switch to chat tab if expanded
+                selectedTab = .chat
+                print("📋 [HUDView] Switched to chat tab, text will be handled by ChatView")
+            }
+        }
     }
 
 }

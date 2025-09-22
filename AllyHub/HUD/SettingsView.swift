@@ -95,6 +95,16 @@ struct SettingsView: View {
                     keyboardShortcutsSettings.setNextTabShortcut(key: key, modifiers: modifiers)
                 }
             )
+
+            // Text Selection Shortcut
+            keyboardShortcutField(
+                title: "Capture Text Selection",
+                description: "Copy selected text and paste to chat input",
+                shortcut: keyboardShortcutsSettings.textSelectionShortcut,
+                onUpdate: { key, modifiers in
+                    keyboardShortcutsSettings.setTextSelectionShortcut(key: key, modifiers: modifiers)
+                }
+            )
         }
     }
     
