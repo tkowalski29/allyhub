@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 // Observable class for external triggers
 class ChatViewModel: ObservableObject {
@@ -24,6 +25,7 @@ struct ChatView: View {
     @AppStorage("activeConversationId") private var activeConversationId: String?
     @State private var conversationsAccordionExpanded = false
     @State private var chatMessages: [ChatMessage] = []
+    @State private var enhancedMessages: [EnhancedChatMessage] = []
     @State private var conversations: [ApiConversation] = []
     @State private var isWaitingForResponse = false
     
@@ -38,6 +40,7 @@ struct ChatView: View {
     }
     
     // MARK: - Data Models
+    // Legacy support for simple messages
     struct ChatMessage: Identifiable, Equatable {
         let id = UUID()
         let content: String
@@ -89,10 +92,16 @@ struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 12) {
+                        // Legacy messages
                         ForEach(chatMessages) { message in
                             chatBubble(message)
                         }
-                        
+
+                        // Enhanced messages
+                        ForEach(enhancedMessages) { message in
+                            enhancedChatBubble(message)
+                        }
+
                         // Typing indicator
                         if isWaitingForResponse {
                             typingIndicator
@@ -165,7 +174,119 @@ struct ChatView: View {
             }
         }
     }
-    
+
+    // MARK: - Enhanced Chat Bubble
+    private func enhancedChatBubble(_ message: EnhancedChatMessage) -> some View {
+        HStack {
+            if message.isUser {
+                Spacer(minLength: 60)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                switch message.content {
+                case .simple(let text):
+                    Text(text.replacingOccurrences(of: "\\n", with: "\n"))
+                        .font(.system(size: 14))
+                        .foregroundColor(message.isUser ? .white : .primary)
+                        .textSelection(.enabled)
+
+                case .rich(let richMessage):
+                    RichMessageView(
+                        richMessage: richMessage,
+                        isCompact: false, // We're in expanded view here
+                        onButtonAction: handleRichMessageAction
+                    )
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(message.isUser ? Color.blue : Color.gray.opacity(0.2))
+            )
+            .frame(maxWidth: .infinity, alignment: message.isUser ? .trailing : .leading)
+            .contextMenu {
+                Button("Copy") {
+                    let textContent: String
+                    switch message.content {
+                    case .simple(let text):
+                        textContent = text
+                    case .rich(let richMessage):
+                        // Extract text content from rich message for copy
+                        textContent = extractTextFromRichMessage(richMessage)
+                    }
+
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(textContent, forType: .string)
+                }
+            }
+
+            if !message.isUser {
+                Spacer(minLength: 60)
+            }
+        }
+    }
+
+    // Helper function to extract text from rich message
+    private func extractTextFromRichMessage(_ richMessage: RichMessage) -> String {
+        return richMessage.content.blocks.compactMap { block in
+            switch block {
+            case .text(let textBlock):
+                return textBlock.content
+            case .quote(let quoteBlock):
+                return quoteBlock.content
+            case .alert(let alertBlock):
+                return "\(alertBlock.title): \(alertBlock.content)"
+            default:
+                return nil
+            }
+        }.joined(separator: "\n")
+    }
+
+    // Handle rich message button actions
+    private func handleRichMessageAction(_ buttonId: String, _ payload: [String: String]?) {
+        print("🔘 [ChatView] Button action: \(buttonId), payload: \(payload ?? [:])")
+
+        // Here you can handle different button actions
+        // For example, send callback to API, trigger local actions, etc.
+
+        // Example: Send user action back to the conversation
+        if let payload = payload {
+            let actionMessage = "User action: \(buttonId) with data: \(payload)"
+            let userMessage = EnhancedChatMessage(
+                isUser: true,
+                content: .simple(actionMessage)
+            )
+            enhancedMessages.append(userMessage)
+
+            // You could also send this back to your API here
+            // sendUserAction(buttonId: buttonId, payload: payload)
+        }
+    }
+
+    // Parse API response to enhanced message
+    private func parseResponseToEnhancedMessage(_ responseContent: String) -> EnhancedChatMessage {
+        // Try to parse as JSON rich message first
+        if let data = responseContent.data(using: .utf8) {
+            do {
+                let richMessage = try JSONDecoder().decode(RichMessage.self, from: data)
+                return EnhancedChatMessage(
+                    isUser: false,
+                    content: .rich(richMessage)
+                )
+            } catch {
+                print("📝 [ChatView] Could not parse as rich message: \(error.localizedDescription)")
+                // Fall through to simple message
+            }
+        }
+
+        // Fallback to simple text message
+        return EnhancedChatMessage(
+            isUser: false,
+            content: .simple(responseContent)
+        )
+    }
+
     // MARK: - Typing Indicator
     private var typingIndicator: some View {
         HStack {
@@ -512,12 +633,19 @@ struct ChatView: View {
     private func loadConversationMessages(_ conversationId: String) {
         // First, try to load from cache
         if let cachedMessages = cacheManager.getCachedConversationHistory() {
-            chatMessages.removeAll()
+            enhancedMessages.removeAll()
 
-            // Convert cached API messages to local ChatMessage format
+            // Convert cached API messages to enhanced message format
             for apiMessage in cachedMessages {
-                chatMessages.append(ChatMessage(content: apiMessage.question, isUser: true))
-                chatMessages.append(ChatMessage(content: apiMessage.answer, isUser: false))
+                let userMessage = EnhancedChatMessage(
+                    isUser: true,
+                    content: .simple(apiMessage.question)
+                )
+                enhancedMessages.append(userMessage)
+
+                // Try to parse assistant response as rich message
+                let assistantMessage = parseResponseToEnhancedMessage(apiMessage.answer)
+                enhancedMessages.append(assistantMessage)
             }
             print("📱 [ChatView] Loaded \(cachedMessages.count) messages from cache for conversation: \(conversationId)")
             return
@@ -533,12 +661,19 @@ struct ChatView: View {
             await MainActor.run {
                 switch result {
                 case .success(let response):
-                    chatMessages.removeAll()
+                    enhancedMessages.removeAll()
 
-                    // Convert API messages to local ChatMessage format
+                    // Convert API messages to enhanced message format
                     for apiMessage in response.collection {
-                        chatMessages.append(ChatMessage(content: apiMessage.question, isUser: true))
-                        chatMessages.append(ChatMessage(content: apiMessage.answer, isUser: false))
+                        let userMessage = EnhancedChatMessage(
+                            isUser: true,
+                            content: .simple(apiMessage.question)
+                        )
+                        enhancedMessages.append(userMessage)
+
+                        // Try to parse assistant response as rich message
+                        let assistantMessage = parseResponseToEnhancedMessage(apiMessage.answer)
+                        enhancedMessages.append(assistantMessage)
                     }
 
                     // Cache the conversation history
@@ -548,8 +683,12 @@ struct ChatView: View {
 
                 case .failure(let error):
                     print("❌ Failed to load conversation messages: \(error.localizedDescription)")
-                    chatMessages.removeAll()
-                    chatMessages.append(ChatMessage(content: "Failed to load conversation. Try again later.", isUser: false))
+                    enhancedMessages.removeAll()
+                    let errorMessage = EnhancedChatMessage(
+                        isUser: false,
+                        content: .simple("Failed to load conversation. Try again later.")
+                    )
+                    enhancedMessages.append(errorMessage)
                 }
             }
         }
@@ -584,8 +723,12 @@ struct ChatView: View {
         guard !messageText.isEmpty else { return }
         guard let conversationId = activeConversationId else { return }
         
-        // Add user message immediately
-        chatMessages.append(ChatMessage(content: messageText, isUser: true))
+        // Add user message immediately using enhanced message system
+        let userMessage = EnhancedChatMessage(
+            isUser: true,
+            content: .simple(messageText)
+        )
+        enhancedMessages.append(userMessage)
         chatInputText = ""
         
         // Show typing indicator
@@ -604,7 +747,11 @@ struct ChatView: View {
                 
                 switch result {
                 case .success(let response):
-                    chatMessages.append(ChatMessage(content: response.data.answer.replacingOccurrences(of: "\\n", with: "\n"), isUser: false))
+                    let answerContent = response.data.answer.replacingOccurrences(of: "\\n", with: "\n")
+
+                    // Try to parse as rich message first
+                    let assistantMessage = parseResponseToEnhancedMessage(answerContent)
+                    enhancedMessages.append(assistantMessage)
 
                     // Invalidate cache after successful message send to ensure fresh data on next load
                     cacheManager.clearConversationHistoryCache()
