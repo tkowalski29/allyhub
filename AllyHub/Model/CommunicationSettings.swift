@@ -34,7 +34,7 @@ final class CommunicationSettings: ObservableObject {
     private func loadSettings() {
         // AllyHub Center settings
         useAllyHubCenter = UserDefaults.standard.bool(forKey: "AllyHub.UseAllyHubCenter")
-        allyHubCenterURL = UserDefaults.standard.string(forKey: "AllyHub.AllyHubCenterURL") ?? "http://127.0.0.1:3030"
+        allyHubCenterURL = UserDefaults.standard.string(forKey: "AllyHub.AllyHubCenterURL") ?? "https://allyhub-center.iseno.net"
         allyHubCenterToken = UserDefaults.standard.string(forKey: "AllyHub.AllyHubCenterToken") ?? ""
         debugModeEnabled = UserDefaults.standard.bool(forKey: "AllyHub.DebugModeEnabled")
 
@@ -142,7 +142,7 @@ final class CommunicationSettings: ObservableObject {
         useAllyHubCenter = enabled
         if enabled {
             // Set fixed URL for AllyHub Center
-            allyHubCenterURL = "http://127.0.0.1:3030"
+            allyHubCenterURL = "https://allyhub-center.iseno.net"
             loadEndpointsFromAllyHubCenter()
         } else {
             clearAllEndpoints()
