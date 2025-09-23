@@ -12,7 +12,8 @@
       "Bash(./bin/allyhub-center)",
       "Bash(sqlite3:*)",
       "Bash(curl:*)",
-      "Bash(go mod:*)"
+      "Bash(go mod:*)",
+      "Bash(./AllyHubCenter/bin/allyhub-center)"
     ],
     "deny": [],
     "ask": []
