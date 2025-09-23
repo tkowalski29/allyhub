@@ -10,19 +10,19 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			uw+XFM8z8fSFW/4j1tR8a0dIWQA=
+			vT6sgbb72k/asYPsenjk+s+Bwaw=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"bb0f9714cf33f1f4855bfe23d6d47c6b47485900"</string>
+			<string>cdhash H"bd3eac81b6fbda4fdab183ec7a78e4facf81c1ac"</string>
 		</dict>
 		<key>MacOS/__preview.dylib</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			hpLFUpLucVFJI8vvCMNpK4PU80g=
+			Fr1NrysNEQXper3f13ZNwgH+IJo=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"8692c55292ee71514923cbef08c3692b83d4f348"</string>
+			<string>cdhash H"16bd4daf2b0d1105e97abddfd7764dc201fe209a"</string>
 		</dict>
 	</dict>
 	<key>rules</key>

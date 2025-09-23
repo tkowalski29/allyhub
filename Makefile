@@ -9,7 +9,6 @@ CONFIGURATION = Release
 BUILD_DIR = build
 APP_PATH = $(BUILD_DIR)/Build/Products/$(CONFIGURATION)/$(APP_NAME).app
 INSTALL_PATH = /Applications
-TIMEOUT = 300
 
 .PHONY: run build clean install uninstall archive help quick-install
 
@@ -43,11 +42,11 @@ run:
 
 build:
 	@echo "🔨 Building $(APP_NAME) ($(CONFIGURATION))..."
-	@timeout $(TIMEOUT) xcodebuild -project $(PROJECT_FILE) \
+	@xcodebuild -project $(PROJECT_FILE) \
 				-scheme $(SCHEME) \
 				-configuration $(CONFIGURATION) \
 				-derivedDataPath $(BUILD_DIR) \
-				build || echo "⚠️  Build timeout or failed, checking results..."
+				build
 	@if [ -d "$(APP_PATH)" ] && [ -x "$(APP_PATH)/Contents/MacOS/$(APP_NAME)" ]; then \
 		echo "✅ Build completed: $(APP_PATH)"; \
 	else \
