@@ -14,7 +14,7 @@
 - [x] sterowanie szerokoscia
 - [x] skroty klawiszowe
 - [x] budowanie przez MakeFile
-- [ ] albo logujesz sie do AllyHub Center albo podpinasz webhooki recznie 
+- [x] albo logujesz sie do AllyHub Center albo podpinasz webhooki recznie 
 - [ ] budowanie automatyczne paczki w github workflows
 - [ ] platnosci subskrypcja
 - [ ] tworzenie taska -> nagrywanie ekranu i dzwieku oraz mikrofonu

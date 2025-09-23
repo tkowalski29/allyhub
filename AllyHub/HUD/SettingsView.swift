@@ -12,10 +12,12 @@ struct SettingsView: View {
     @State private var actionsAccordionExpanded = false
     @State private var appearanceAccordionExpanded = true
     @State private var keyboardShortcutsAccordionExpanded = false
+    @State private var allyHubCenterAccordionExpanded = true
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
+                allyHubCenterAccordion
                 chatAccordion
                 tasksAccordion
                 notificationsAccordion
@@ -29,6 +31,225 @@ struct SettingsView: View {
         .scrollIndicators(.never)
     }
     
+    // MARK: - AllyHub Center Accordion
+
+    private var allyHubCenterAccordion: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    allyHubCenterAccordionExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "network")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+
+                    Text("AllyHub Center")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                    Spacer()
+
+                    // Status indicator
+                    if communicationSettings.useAllyHubCenter {
+                        Text("CONNECTED")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(0.8))
+                            .clipShape(Capsule())
+                    } else {
+                        Text("MANUAL")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.8))
+                            .clipShape(Capsule())
+                    }
+
+                    Image(systemName: allyHubCenterAccordionExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+
+            if allyHubCenterAccordionExpanded {
+                allyHubCenterSettingsView
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .transition(.slide.combined(with: .opacity))
+            }
+        }
+    }
+
+    private var allyHubCenterSettingsView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Toggle for AllyHub Center mode
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Use AllyHub Center")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+
+                    Text("Connect to AllyHub Center server for automatic endpoint configuration")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
+
+                Toggle("", isOn: Binding(
+                    get: { communicationSettings.useAllyHubCenter },
+                    set: { newValue in
+                        communicationSettings.setAllyHubCenterMode(newValue)
+                    }
+                ))
+                .toggleStyle(SwitchToggleStyle(tint: .green))
+                .scaleEffect(0.8)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            if communicationSettings.useAllyHubCenter {
+                // Token field - always editable with secure input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("API Token")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+
+                    SecureField("Enter API token", text: Binding(
+                        get: { communicationSettings.allyHubCenterToken },
+                        set: { newValue in
+                            communicationSettings.updateAllyHubCenterToken(newValue)
+                        }
+                    ))
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .focusable(true)
+                    .onSubmit {
+                        communicationSettings.saveSettings()
+                    }
+                    .onChange(of: communicationSettings.allyHubCenterToken) { _ in
+                        communicationSettings.saveSettings()
+                    }
+                }
+
+                // Fetch status indicator
+                if !communicationSettings.allyHubCenterURL.isEmpty && !communicationSettings.allyHubCenterToken.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "arrow.down.circle")
+                                .foregroundStyle(.blue)
+                                .font(.system(size: 14))
+
+                            Text("Endpoint Loading Status")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.white)
+                        }
+
+                        Text("Endpoints will be automatically fetched from AllyHub Center when URL and token are provided.")
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.7))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                // Connection status info
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "shield.checkered")
+                            .foregroundStyle(.green)
+                            .font(.system(size: 14))
+
+                        Text("Secure Configuration")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white)
+                    }
+
+                    Text("Connection details are hidden for security. All API endpoints are automatically configured from AllyHub Center. Manual endpoint configuration is disabled.")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.green.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.green.opacity(0.25), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            } else {
+                // Manual configuration info when AllyHub Center is disabled
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "hand.point.up")
+                            .foregroundStyle(.orange)
+                            .font(.system(size: 14))
+
+                        Text("Manual Configuration")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white)
+                    }
+
+                    Text("AllyHub Center is disabled. Configure individual endpoints manually in each section below.")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.orange.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+        }
+    }
+
     // MARK: - Keyboard Shortcuts Accordion
     
     private var keyboardShortcutsAccordion: some View {
@@ -357,21 +578,21 @@ struct SettingsView: View {
             chatUrlField(
                 title: "Collection URL", 
                 placeholder: "Enter URL for chat collections",
-                value: $communicationSettings.chatHistoryURL
+                value: $communicationSettings.chatOneURL
             )
             
             // URL Get Conversation field (Wiadomości w konwersacji)
             chatUrlField(
                 title: "Get Conversation URL",
                 placeholder: "Enter URL to get conversation messages",
-                value: $communicationSettings.chatGetConversationURL
+                value: $communicationSettings.chatFetchURL
             )
             
             // URL Create Conversation field (Nowa konwersacja)
             chatUrlField(
                 title: "Create Conversation URL",
                 placeholder: "Enter URL to create new conversation",
-                value: $communicationSettings.chatCreateConversationURL
+                value: $communicationSettings.chatCreateURL
             )
         }
     }
@@ -489,14 +710,14 @@ struct SettingsView: View {
             chatUrlField(
                 title: "Fetch URL",
                 placeholder: "Enter URL to fetch notifications",
-                value: $communicationSettings.notificationsFetchURL
+                value: $communicationSettings.notificationFetchURL
             )
             
             // Notification Status URL
             chatUrlField(
                 title: "Status URL",
                 placeholder: "Enter URL to update notification status",
-                value: $communicationSettings.notificationStatusURL
+                value: $communicationSettings.notificationUpdateURL
             )
         }
     }
@@ -549,7 +770,7 @@ struct SettingsView: View {
             chatUrlField(
                 title: "Actions Fetch URL",
                 placeholder: "Enter URL to fetch actions",
-                value: $communicationSettings.actionsFetchURL
+                value: $communicationSettings.actionFetchURL
             )
         }
     }
@@ -895,7 +1116,7 @@ struct SettingsView: View {
             chatUrlField(
                 title: "Fetch URL",
                 placeholder: "Enter URL to fetch tasks",
-                value: $communicationSettings.tasksFetchURL
+                value: $communicationSettings.taskFetchURL
             )
             
             chatUrlField(
@@ -1064,35 +1285,67 @@ struct SettingsView: View {
         }
         .buttonStyle(.plain)
     }
-    
+
+    private var statusText: String {
+        switch communicationSettings.connectionStatus {
+        case .unknown:
+            return ""
+        case .testing:
+            return "Testing connection..."
+        case .success:
+            return "Connection successful"
+        case .failed:
+            return "Connection failed"
+        }
+    }
+
     // MARK: - Helper Functions
-    
+
     private func chatUrlField(title: String, placeholder: String, value: Binding<String>) -> some View {
+        chatUrlFieldInternal(title: title, placeholder: placeholder, value: value, disabled: communicationSettings.useAllyHubCenter)
+    }
+
+    private func chatUrlFieldInternal(title: String, placeholder: String, value: Binding<String>, disabled: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(.white)
             
-            TextField(placeholder, text: value)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.white.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .focusable(true)
-                .onSubmit {
-                    communicationSettings.saveSettings()
-                }
-                .onChange(of: value.wrappedValue) { _ in
-                    communicationSettings.saveSettings()
-                }
+            if disabled {
+                Text(communicationSettings.debugModeEnabled ? value.wrappedValue : "Retrieved from AllyHub Center")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.6))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.03))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                TextField(placeholder, text: value)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .focusable(true)
+                    .onSubmit {
+                        communicationSettings.saveSettings()
+                    }
+                    .onChange(of: value.wrappedValue) { _ in
+                        communicationSettings.saveSettings()
+                    }
+            }
         }
     }
     
@@ -1117,6 +1370,7 @@ struct SettingsView: View {
                 }
         }
     }
+
 }
 
 // MARK: - Button Styles

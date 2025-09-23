@@ -51,16 +51,16 @@ class ActionsManager: ObservableObject {
     func fetchActions() {
         print("🔄 [ActionsManager] Starting fetchActions()")
         
-        guard !communicationSettings.actionsFetchURL.isEmpty else {
+        guard !communicationSettings.actionFetchURL.isEmpty else {
             print("❌ [ActionsManager] Actions fetch URL is empty")
             createFallbackActions()
             return
         }
         
-        print("🌐 [ActionsManager] Fetch URL: \(communicationSettings.actionsFetchURL)")
+        print("🌐 [ActionsManager] Fetch URL: \(communicationSettings.actionFetchURL)")
         
-        guard let url = URL(string: communicationSettings.actionsFetchURL) else {
-            print("❌ [ActionsManager] Invalid actions fetch URL: \(communicationSettings.actionsFetchURL)")
+        guard let url = URL(string: communicationSettings.actionFetchURL) else {
+            print("❌ [ActionsManager] Invalid actions fetch URL: \(communicationSettings.actionFetchURL)")
             createFallbackActions()
             return
         }

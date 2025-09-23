@@ -268,13 +268,13 @@ struct NotificationsView: View {
     }
     
     private func updateNotificationStatus(notificationId: String, isRead: Bool?, action: String? = nil) {
-        guard !communicationSettings.notificationStatusURL.isEmpty else {
+        guard !communicationSettings.notificationUpdateURL.isEmpty else {
             print("❌ Notification status URL is empty - configure in Settings")
             return
         }
         
-        guard let url = URL(string: communicationSettings.notificationStatusURL) else {
-            print("Invalid notification status URL: \(communicationSettings.notificationStatusURL)")
+        guard let url = URL(string: communicationSettings.notificationUpdateURL) else {
+            print("Invalid notification status URL: \(communicationSettings.notificationUpdateURL)")
             return
         }
         

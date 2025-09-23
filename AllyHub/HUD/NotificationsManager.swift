@@ -65,16 +65,16 @@ class NotificationsManager: ObservableObject {
     func fetchNotifications() {
         print("🔄 [NotificationsManager] Starting fetchNotifications()")
         
-        guard !communicationSettings.notificationsFetchURL.isEmpty else {
+        guard !communicationSettings.notificationFetchURL.isEmpty else {
             print("❌ [NotificationsManager] Notifications fetch URL is empty")
             createFallbackNotifications()
             return
         }
         
-        print("🌐 [NotificationsManager] Fetch URL: \(communicationSettings.notificationsFetchURL)")
+        print("🌐 [NotificationsManager] Fetch URL: \(communicationSettings.notificationFetchURL)")
         
-        guard let url = URL(string: communicationSettings.notificationsFetchURL) else {
-            print("❌ [NotificationsManager] Invalid notifications fetch URL: \(communicationSettings.notificationsFetchURL)")
+        guard let url = URL(string: communicationSettings.notificationFetchURL) else {
+            print("❌ [NotificationsManager] Invalid notifications fetch URL: \(communicationSettings.notificationFetchURL)")
             createFallbackNotifications()
             return
         }
@@ -144,32 +144,37 @@ class NotificationsManager: ObservableObject {
                     // Check if it's a valid but empty response
                     if let jsonString = String(data: data, encoding: .utf8) {
                         print("📝 [NotificationsManager] Raw response: \(jsonString)")
-                        
+
                         // Check for empty array or empty response patterns
                         let trimmedResponse = jsonString.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if trimmedResponse == "[]" || 
+                        if trimmedResponse == "[]" ||
+                           trimmedResponse == "{}" ||
+                           trimmedResponse == "null" ||
+                           trimmedResponse.isEmpty ||
                            trimmedResponse.contains("\"collection\":[]") ||
-                           trimmedResponse.contains("\"count\":0") {
+                           trimmedResponse.contains("\"count\":0") ||
+                           trimmedResponse.contains("\"collection\":null") {
                             print("✅ [NotificationsManager] Server returned empty notifications - this is normal")
                             self.notifications = []
                             self.unreadNotificationsCount = 0
                             return
                         }
+
+                        // If response contains any reasonable structure but isn't decodable,
+                        // it might still be a valid empty response format
+                        if (trimmedResponse.hasPrefix("{") && trimmedResponse.hasSuffix("}")) ||
+                           (trimmedResponse.hasPrefix("[") && trimmedResponse.hasSuffix("]")) {
+                            print("✅ [NotificationsManager] Received valid JSON structure with no notifications - treating as empty")
+                            self.notifications = []
+                            self.unreadNotificationsCount = 0
+                            return
+                        }
                     }
-                    
-                    print("❌ [NotificationsManager] Failed to decode notifications response - invalid format")
-                    let fallbackNotification = NotificationItem(
-                        title: "System",
-                        message: "Failed to load notifications from server. Using fallback data.",
-                        date: Date(),
-                        createdAt: Date(),
-                        isRead: false,
-                        url: nil,
-                        apiId: nil,
-                        type: "error"
-                    )
-                    self.notifications = [fallbackNotification]
-                    self.unreadNotificationsCount = 1
+
+                    // Only log error but don't create error notification - just use empty state
+                    print("⚠️ [NotificationsManager] Could not decode response, but treating as empty notification list")
+                    self.notifications = []
+                    self.unreadNotificationsCount = 0
                 }
             }
         }.resume()

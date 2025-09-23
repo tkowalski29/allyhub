@@ -37,6 +37,7 @@
 		AB8049CF2E76E497006AAED5 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049CE2E76E497006AAED5 /* ChatView.swift */; };
 		AB8049D52E785857006AAED5 /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8049D42E785857006AAED5 /* CacheManager.swift */; };
 		ABAAA3522E81AD7600DD0D5C /* RichMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAAA3512E81AD7600DD0D5C /* RichMessage.swift */; };
+		ABAAA3542E81AD7700DD0D5C /* RichMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAAA3532E81AD7700DD0D5C /* RichMessageView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +85,7 @@
 		AB8049CE2E76E497006AAED5 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		AB8049D42E785857006AAED5 /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
 		ABAAA3512E81AD7600DD0D5C /* RichMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RichMessage.swift; sourceTree = "<group>"; };
+		ABAAA3532E81AD7700DD0D5C /* RichMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RichMessageView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,6 +168,7 @@
 			isa = PBXGroup;
 			children = (
 				AB8049CE2E76E497006AAED5 /* ChatView.swift */,
+				ABAAA3532E81AD7700DD0D5C /* RichMessageView.swift */,
 				AB8049C52E75ECD5006AAED5 /* ScreenRecorderView.swift */,
 				AB8049C32E75EBFB006AAED5 /* AudioRecorderView.swift */,
 				AB8049C12E75EB7A006AAED5 /* TaskFormView.swift */,
@@ -335,6 +338,7 @@
 				AB8049C62E75ECD5006AAED5 /* ScreenRecorderView.swift in Sources */,
 				AB8049BE2E75486D006AAED5 /* TasksManager.swift in Sources */,
 				AB8049CF2E76E497006AAED5 /* ChatView.swift in Sources */,
+				ABAAA3542E81AD7700DD0D5C /* RichMessageView.swift in Sources */,
 				501234567890ABCDEF000007 /* TimerModel.swift in Sources */,
 				501234567890ABCDEF000008 /* TasksModel.swift in Sources */,
 				AB8049B32E74B5C4006AAED5 /* NotificationsView.swift in Sources */,

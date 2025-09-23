@@ -682,17 +682,17 @@ struct HUDView: View {
         VStack(spacing: 0) {
             if notificationsManager.notifications.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: communicationSettings.notificationsFetchURL.isEmpty ? "bell.slash" : "bell")
+                    Image(systemName: communicationSettings.notificationFetchURL.isEmpty ? "bell.slash" : "bell")
                         .font(.system(size: 32))
                         .foregroundStyle(.white.opacity(0.4))
                     
                     VStack(spacing: 4) {
-                        Text(communicationSettings.notificationsFetchURL.isEmpty ? "No notifications configured" : "No notifications")
+                        Text(communicationSettings.notificationFetchURL.isEmpty ? "No notifications configured" : "No notifications")
                             .font(.body)
                             .fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.8))
                         
-                        Text(communicationSettings.notificationsFetchURL.isEmpty ? "Configure notifications URL in Settings" : "Pull to refresh or wait for updates")
+                        Text(communicationSettings.notificationFetchURL.isEmpty ? "Configure notifications URL in Settings" : "Pull to refresh or wait for updates")
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.6))
                             .multilineTextAlignment(.center)
@@ -717,17 +717,17 @@ struct HUDView: View {
         VStack(spacing: 0) {
             if actionsManager.actions.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: communicationSettings.actionsFetchURL.isEmpty ? "bolt.slash" : "bolt")
+                    Image(systemName: communicationSettings.actionFetchURL.isEmpty ? "bolt.slash" : "bolt")
                         .font(.system(size: 32))
                         .foregroundStyle(.white.opacity(0.4))
                     
                     VStack(spacing: 4) {
-                        Text(communicationSettings.actionsFetchURL.isEmpty ? "No actions configured" : "No actions")
+                        Text(communicationSettings.actionFetchURL.isEmpty ? "No actions configured" : "No actions")
                             .font(.body)
                             .fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.8))
                         
-                        Text(communicationSettings.actionsFetchURL.isEmpty ? "Configure actions URL in Settings" : "Pull to refresh or wait for updates")
+                        Text(communicationSettings.actionFetchURL.isEmpty ? "Configure actions URL in Settings" : "Pull to refresh or wait for updates")
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.6))
                             .multilineTextAlignment(.center)
@@ -879,12 +879,12 @@ struct HUDView: View {
     }
     
     private func updateNotificationStatus(notificationId: String, isRead: Bool?, action: String? = nil) {
-        guard !communicationSettings.notificationStatusURL.isEmpty else {
+        guard !communicationSettings.notificationUpdateURL.isEmpty else {
             print("Notification status URL not configured")
             return
         }
         
-        guard let url = URL(string: communicationSettings.notificationStatusURL) else {
+        guard let url = URL(string: communicationSettings.notificationUpdateURL) else {
             print("Invalid notification status URL")
             return
         }

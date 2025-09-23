@@ -654,7 +654,7 @@ struct ChatView: View {
         // If no cache or cache is stale, load from API
         Task {
             let result = await chatService.getConversationMessages(
-                from: communicationSettings.chatGetConversationURL,
+                from: communicationSettings.chatFetchURL,
                 conversationId: conversationId
             )
 
@@ -697,7 +697,7 @@ struct ChatView: View {
     // MARK: - API Functions
     func createNewConversation() {
         Task {
-            let result = await chatService.createConversation(from: communicationSettings.chatCreateConversationURL)
+            let result = await chatService.createConversation(from: communicationSettings.chatCreateURL)
             
             await MainActor.run {
                 switch result {
@@ -802,7 +802,7 @@ struct ChatView: View {
     
     private func loadConversations() {
         Task {
-            let result = await chatService.fetchConversations(from: communicationSettings.chatHistoryURL)
+            let result = await chatService.fetchConversations(from: communicationSettings.chatOneURL)
             
             await MainActor.run {
                 switch result {

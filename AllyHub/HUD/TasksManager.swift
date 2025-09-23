@@ -60,16 +60,16 @@ class TasksManager: ObservableObject {
     func fetchTasks() {
         print("🔄 [TasksManager] Starting fetchTasks()")
         
-        guard !communicationSettings.tasksFetchURL.isEmpty else {
+        guard !communicationSettings.taskFetchURL.isEmpty else {
             print("❌ [TasksManager] Tasks fetch URL is empty")
             createFallbackTasks()
             return
         }
         
-        print("🌐 [TasksManager] Fetch URL: \(communicationSettings.tasksFetchURL)")
+        print("🌐 [TasksManager] Fetch URL: \(communicationSettings.taskFetchURL)")
         
-        guard let url = URL(string: communicationSettings.tasksFetchURL) else {
-            print("❌ [TasksManager] Invalid tasks fetch URL: \(communicationSettings.tasksFetchURL)")
+        guard let url = URL(string: communicationSettings.taskFetchURL) else {
+            print("❌ [TasksManager] Invalid tasks fetch URL: \(communicationSettings.taskFetchURL)")
             createFallbackTasks()
             return
         }

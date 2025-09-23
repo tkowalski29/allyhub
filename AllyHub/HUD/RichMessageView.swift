@@ -21,7 +21,7 @@ struct RichMessageView: View {
             if isCompact && richMessage.content.blocks.count > 3 {
                 Text("...")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(Color.white.opacity(0.5))
                     .padding(.top, 2)
             }
         }
@@ -148,14 +148,14 @@ struct QuoteBlockView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(block.content)
                         .font(isCompact ? .caption : .body)
-                        .fontStyle(.italic)
-                        .foregroundColor(.white.opacity(0.9))
+                        .italic()
+                        .foregroundColor(Color.white.opacity(0.9))
                         .lineLimit(isCompact ? 2 : nil)
 
                     if !isCompact, let author = block.author {
                         Text("— \(author)")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(Color.white.opacity(0.7))
                     }
                 }
 
@@ -192,7 +192,7 @@ struct ActionsBlockView: View {
                 if isCompact && block.buttons.count > maxButtons {
                     Text("+\(block.buttons.count - maxButtons)")
                         .font(.caption2)
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(Color.white.opacity(0.6))
                 }
             }
         } else {
@@ -241,7 +241,7 @@ struct ActionButtonView: View {
         case .primary:
             return .white
         case .secondary:
-            return .white.opacity(0.9)
+            return Color.white.opacity(0.9)
         case .success:
             return .white
         case .warning:
@@ -256,7 +256,7 @@ struct ActionButtonView: View {
         case .primary:
             return .blue
         case .secondary:
-            return .white.opacity(0.2)
+            return Color.white.opacity(0.2)
         case .success:
             return .green
         case .warning:
@@ -294,7 +294,7 @@ struct LinkBlockView: View {
                     if !isCompact, let description = block.description {
                         Text(description)
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(Color.white.opacity(0.7))
                             .lineLimit(2)
                     }
                 }
@@ -330,7 +330,7 @@ struct ImageBlockView: View {
                     .fill(Color.white.opacity(0.1))
                     .overlay(
                         Image(systemName: "photo")
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(Color.white.opacity(0.5))
                     )
             }
             .frame(maxHeight: isCompact ? 60 : 200)
@@ -339,7 +339,7 @@ struct ImageBlockView: View {
             if !isCompact, let caption = block.caption {
                 Text(caption)
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(Color.white.opacity(0.7))
             }
         }
     }
@@ -354,7 +354,7 @@ struct FileBlockView: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "doc.fill")
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(Color.white.opacity(0.7))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(block.filename)
@@ -366,7 +366,7 @@ struct FileBlockView: View {
                 if !isCompact {
                     Text(formatFileSize(block.size))
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(Color.white.opacity(0.6))
                 }
             }
 
@@ -434,7 +434,7 @@ struct CodeBlockView: View {
                 Text(title)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(Color.white.opacity(0.8))
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -462,12 +462,12 @@ struct ListBlockView: View {
                 HStack(alignment: .top, spacing: 6) {
                     Text(listPrefix(for: index, style: block.style))
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color.white.opacity(0.7))
                         .frame(width: 20, alignment: .leading)
 
                     Text(item.content)
                         .font(isCompact ? .caption : .body)
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(Color.white.opacity(0.9))
                         .lineLimit(isCompact ? 1 : nil)
 
                     Spacer()
@@ -477,7 +477,7 @@ struct ListBlockView: View {
             if isCompact && block.items.count > 3 {
                 Text("...and \(block.items.count - 3) more")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(Color.white.opacity(0.5))
             }
         }
     }
@@ -504,12 +504,12 @@ struct TableBlockView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Table: \(block.headers.joined(separator: ", "))")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(Color.white.opacity(0.8))
                     .lineLimit(1)
 
                 Text("\(block.rows.count) rows")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(Color.white.opacity(0.6))
             }
             .padding(6)
             .background(Color.white.opacity(0.05))
@@ -536,7 +536,7 @@ struct TableBlockView: View {
                             ForEach(Array(row.enumerated()), id: \.offset) { _, cell in
                                 Text(cell)
                                     .font(.caption)
-                                    .foregroundColor(.white.opacity(0.9))
+                                    .foregroundColor(Color.white.opacity(0.9))
                                     .frame(minWidth: 80, alignment: .leading)
                                     .padding(4)
                             }
@@ -568,7 +568,7 @@ struct ProgressBlockView: View {
                 if let label = block.label {
                     Text(label)
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color.white.opacity(0.7))
                 }
             }
 
@@ -608,7 +608,7 @@ struct AlertBlockView: View {
                 if !isCompact {
                     Text(block.content)
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(Color.white.opacity(0.9))
                         .lineLimit(3)
                 }
             }
@@ -671,7 +671,7 @@ struct FormBlockView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(field.label)
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(Color.white.opacity(0.8))
 
                             TextField(field.placeholder ?? "", text: Binding(
                                 get: { formData[field.id, default: ""] },
@@ -695,7 +695,7 @@ struct FormBlockView: View {
             } else {
                 Text("Form: \(block.fields.count) fields")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(Color.white.opacity(0.6))
             }
         }
         .padding(8)
@@ -734,13 +734,13 @@ struct CardBlockView: View {
                 if let subtitle = block.subtitle {
                     Text(subtitle)
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color.white.opacity(0.7))
                 }
 
                 if !isCompact, let content = block.content {
                     Text(content)
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(Color.white.opacity(0.9))
                         .lineLimit(3)
                 }
             }
@@ -772,7 +772,7 @@ struct DividerBlockView: View {
             if let label = block.label, !isCompact {
                 Text(label)
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(Color.white.opacity(0.6))
                     .frame(maxWidth: .infinity, alignment: .center)
             }
 
@@ -787,7 +787,7 @@ struct DividerBlockView: View {
             case .decorative:
                 Text("• • •")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.3))
+                    .foregroundColor(Color.white.opacity(0.3))
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         }
